@@ -1,4 +1,4 @@
-interface HomePageProps {
+﻿interface HomePageProps {
   onStartBoard: () => void;
   onOpenSettings: () => void;
 }
@@ -8,7 +8,7 @@ export function HomePage({ onStartBoard, onOpenSettings }: HomePageProps) {
     <section className="home-page">
       <div className="home-copy">
         <p className="eyebrow">Offline-first teaching board</p>
-        <h1>LessonInk Desktop</h1>
+        <h1>MushroomLearning Desktop</h1>
         <p>
           A local whiteboard workspace for teachers who share their app window during live online classes.
         </p>

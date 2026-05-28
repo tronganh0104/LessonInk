@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { StrokeObject } from "../../src/features/canvas/canvas.types";
-import { addPage, createBlankBoard, setActivePage, setPageObjects } from "../../src/features/board/board.store";
+import {
+  addPage,
+  createBlankBoard,
+  getAdjacentPageId,
+  setActivePage,
+  setPageObjects
+} from "../../src/features/board/board.store";
 
 function createStroke(id: string, pageId: string): StrokeObject {
   return {
@@ -72,5 +78,19 @@ describe("board store", () => {
 
     expect(clearedFirstPage.pages[0].objects).toEqual([]);
     expect(clearedFirstPage.pages[1].objects).toEqual([secondStroke]);
+  });
+
+  it("finds previous and next pages without mutating board state", () => {
+    const board = addPage(addPage(createBlankBoard("Live class board")));
+    const firstPage = board.pages[0];
+    const secondPage = board.pages[1];
+    const thirdPage = board.pages[2];
+    const firstStroke = createStroke("stroke-1", firstPage.id);
+    const boardWithObjects = setActivePage(setPageObjects(board, firstPage.id, [firstStroke]), secondPage.id);
+
+    expect(getAdjacentPageId(boardWithObjects, "previous")).toBe(firstPage.id);
+    expect(getAdjacentPageId(boardWithObjects, "next")).toBe(thirdPage.id);
+    expect(boardWithObjects.activePageId).toBe(secondPage.id);
+    expect(boardWithObjects.pages[0].objects).toEqual([firstStroke]);
   });
 });

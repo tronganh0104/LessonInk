@@ -1,30 +1,30 @@
-# Định dạng file
+﻿# Định dạng file
 
-File dự án LessonInk dùng phần mở rộng `.lessonink`.
+File dự án MushroomLearning dùng phần mở rộng `.mushroomlearning`.
 
 ## Định dạng MVP
 
-MVP dùng JSON trong file có phần mở rộng `.lessonink`. Canvas không lưu raw pixels hoặc
-Konva internal objects; file chỉ lưu domain objects của LessonInk như board, pages và strokes.
+MVP dùng JSON trong file có phần mở rộng `.mushroomlearning`. Canvas không lưu pixel thô hoặc
+đối tượng nội bộ của Konva; file chỉ lưu các đối tượng domain của MushroomLearning như bảng, trang và nét vẽ.
 
 ```json
 {
   "schemaVersion": 1,
-  "app": "LessonInk",
+  "app": "MushroomLearning",
   "project": {
     "id": "project-id",
-    "title": "Untitled Lesson",
+    "title": "Bài học chưa đặt tên",
     "createdAt": "2026-05-28T00:00:00.000Z",
     "updatedAt": "2026-05-28T00:00:00.000Z"
   },
   "board": {
     "id": "board-1",
-    "title": "Untitled Board",
+    "title": "Bảng chưa đặt tên",
     "activePageId": "page-1",
     "pages": [
       {
         "id": "page-1",
-        "title": "Page 1",
+        "title": "Trang 1",
         "index": 0,
         "background": {
           "type": "blank",
@@ -41,9 +41,9 @@ Konva internal objects; file chỉ lưu domain objects của LessonInk như boar
 }
 ```
 
-### Stroke object v0.4
+### Đối tượng nét vẽ v0.4
 
-Stroke objects are stored as structured data:
+Đối tượng nét vẽ được lưu dưới dạng dữ liệu có cấu trúc:
 
 ```json
 {
@@ -72,8 +72,7 @@ Stroke objects are stored as structured data:
 }
 ```
 
-`pressure` is optional and preserved when present. The v0.4 browser workflow saves via Blob
-download and opens via file upload so development can work before Tauri filesystem APIs are ready.
+`pressure` là trường không bắt buộc và sẽ được giữ lại khi có trong dữ liệu. Luồng trên trình duyệt ở v0.4 lưu bằng cách tải Blob xuống máy và mở bằng cách tải file lên, nhờ đó quá trình phát triển vẫn chạy được trước khi API hệ thống file của Tauri sẵn sàng.
 
 ## Định dạng tương lai
 

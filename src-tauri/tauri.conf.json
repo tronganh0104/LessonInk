@@ -1,8 +1,8 @@
-{
+﻿{
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "LessonInk Desktop",
+  "productName": "MushroomLearning Desktop",
   "version": "0.1.0",
-  "identifier": "com.lessonink.desktop",
+  "identifier": "com.mushroomlearning.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://127.0.0.1:5173",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "LessonInk Desktop",
+        "title": "MushroomLearning Desktop",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Board } from "../../src/features/board/board.types";
+import type { Board, ImagePageDocument } from "../../src/features/board/board.types";
 import type { Point, StrokeObject } from "../../src/features/canvas/canvas.types";
 import {
   createLessonInkFile,
@@ -55,6 +55,25 @@ function createBoard(overrides: Partial<Board> = {}): Board {
   };
 }
 
+function createImageDocument(pageId: string): ImagePageDocument {
+  return {
+    id: "image-1",
+    pageId,
+    kind: "image",
+    sourceType: "embedded",
+    source: "data:image/png;base64,aW1hZ2U=",
+    mimeType: "image/png",
+    altText: "worksheet.png",
+    x: 24,
+    y: 32,
+    width: 640,
+    height: 480,
+    rotation: 0,
+    createdAt: "2026-05-28T00:00:00.000Z",
+    updatedAt: "2026-05-28T00:00:00.000Z"
+  };
+}
+
 describe("createLessonInkFile", () => {
   it("serializes an empty board/project correctly", () => {
     const file = createLessonInkFile(createBoard(), {
@@ -64,7 +83,7 @@ describe("createLessonInkFile", () => {
     });
 
     expect(file.schemaVersion).toBe(1);
-    expect(file.app).toBe("LessonInk");
+    expect(file.app).toBe("MushroomLearning");
     expect(file.project).toMatchObject({
       id: "project-1",
       title: "Algebra lesson",
@@ -118,6 +137,25 @@ describe("createLessonInkFile", () => {
 
     expect(file.board.pages[0].objects).toEqual([stroke]);
   });
+
+  it("serializes an imported image document separately from strokes", () => {
+    const imageDocument = createImageDocument("page-1");
+    const stroke = createStroke("stroke-1", "page-1");
+    const file = createLessonInkFile(
+      createBoard({
+        pages: [
+          {
+            ...createBoard().pages[0],
+            document: imageDocument,
+            objects: [stroke]
+          }
+        ]
+      })
+    );
+
+    expect(file.board.pages[0].document).toEqual(imageDocument);
+    expect(file.board.pages[0].objects).toEqual([stroke]);
+  });
 });
 
 describe("deserializeLessonInkFile", () => {
@@ -125,7 +163,7 @@ describe("deserializeLessonInkFile", () => {
     expect(() => deserializeLessonInkFile("{not-json")).toThrow("The selected file is not valid JSON.");
   });
 
-  it("deserializes a valid .lessonink object and restores activePageId", () => {
+  it("deserializes a valid .mushroomlearning object and restores activePageId", () => {
     const board = createBoard({ activePageId: "page-1" });
     const loadedProject = deserializeLessonInkFile(serializeLessonInkFile(board));
 
@@ -153,10 +191,29 @@ describe("deserializeLessonInkFile", () => {
     expect(loadedProject.board.pages[0].objects).toEqual([stroke]);
   });
 
+  it("restores image documents with strokes on top", () => {
+    const imageDocument = createImageDocument("page-1");
+    const stroke = createStroke("stroke-1", "page-1");
+    const board = createBoard({
+      pages: [
+        {
+          ...createBoard().pages[0],
+          document: imageDocument,
+          objects: [stroke]
+        }
+      ]
+    });
+
+    const loadedProject = deserializeLessonInkFile(serializeLessonInkFile(board));
+
+    expect(loadedProject.board.pages[0].document).toEqual(imageDocument);
+    expect(loadedProject.board.pages[0].objects).toEqual([stroke]);
+  });
+
   it("handles missing optional metadata fields safely", () => {
     const fileWithoutOptionalMetadata = {
       schemaVersion: 1,
-      app: "LessonInk",
+      app: "MushroomLearning",
       board: {
         pages: [
           {
@@ -214,7 +271,7 @@ describe("deserializeLessonInkFile", () => {
 });
 
 describe("sanitizeLessonInkFileName", () => {
-  it("creates a safe .lessonink filename", () => {
-    expect(sanitizeLessonInkFileName(" IELTS Writing Task 1 ")).toBe("ielts-writing-task-1.lessonink");
+  it("creates a safe .mushroomlearning filename", () => {
+    expect(sanitizeLessonInkFileName(" IELTS Writing Task 1 ")).toBe("ielts-writing-task-1.mushroomlearning");
   });
 });

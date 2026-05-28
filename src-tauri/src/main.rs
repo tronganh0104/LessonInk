@@ -1,5 +1,5 @@
-fn main() {
+﻿fn main() {
     tauri::Builder::default()
         .run(tauri::generate_context!())
-        .expect("error while running LessonInk Desktop");
+        .expect("error while running MushroomLearning Desktop");
 }

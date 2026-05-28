@@ -1,12 +1,12 @@
-# Lộ trình
+﻿# Lộ trình
 
 ## Giai đoạn 0: Xác thực
 
-- Phỏng vấn giáo viên và gia sư online.
+- Phỏng vấn giáo viên và gia sư trực tuyến.
 - Quan sát luồng dạy học qua chia sẻ màn hình hiện tại.
 - Xác nhận chú thích PDF và nét viết mượt có phải vấn đề hàng đầu không.
 
-## Giai đoạn 1: Prototype bảng trắng cục bộ
+## Giai đoạn 1: Nguyên mẫu bảng trắng cục bộ
 
 - Bảng trống.
 - Bút và tẩy.
@@ -18,8 +18,8 @@
 
 - Nhập PDF.
 - Nhập hình ảnh.
-- Highlight và công cụ văn bản.
-- Pan/zoom.
+- Tô sáng và công cụ văn bản.
+- Di chuyển bảng/phóng to thu nhỏ.
 - Xuất PDF/PNG.
 
 ## Giai đoạn 3: Trải nghiệm chia sẻ màn hình
@@ -30,7 +30,7 @@
 - Tự động lưu.
 - Thumbnail trang.
 
-## Giai đoạn 4: Beta
+## Giai đoạn 4: Thử nghiệm beta
 
 - Đóng gói bộ cài Windows.
 - Thử nghiệm với 20-50 giáo viên.

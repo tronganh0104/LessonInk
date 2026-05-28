@@ -1,18 +1,18 @@
-# Canvas engine
+﻿# Engine canvas
 
-Canvas engine là bề mặt dạy học cốt lõi của LessonInk.
+Engine canvas là bề mặt dạy học cốt lõi của MushroomLearning.
 
 ## Trách nhiệm
 
 - Render trang và các đối tượng canvas.
-- Theo dõi đối tượng bút, tẩy, highlight, văn bản, hình vẽ, hình ảnh và trang PDF.
-- Hỗ trợ pan và zoom.
+- Theo dõi đối tượng bút, tẩy, tô sáng, văn bản, hình vẽ, hình ảnh và trang PDF.
+- Hỗ trợ di chuyển bảng và phóng to/thu nhỏ.
 - Duy trì lịch sử thao tác cho hoàn tác/làm lại.
 - Giữ nét viết phản hồi nhanh trong buổi học dài.
 
 ## Ranh giới hiện tại
 
-`src/features/canvas/engine/canvasEngine.ts` đang chứa interface placeholder cho renderer. Việc triển khai nên bắt đầu bằng một spike nhỏ với thư viện canvas đã được chứng minh như Konva.js hoặc Fabric.js.
+`src/features/canvas/engine/canvasEngine.ts` đang chứa interface tạm cho bộ render. Việc triển khai nên bắt đầu bằng một thử nghiệm kỹ thuật nhỏ với thư viện canvas đã được chứng minh như Konva.js hoặc Fabric.js.
 
 ## Mục tiêu hiệu năng
 

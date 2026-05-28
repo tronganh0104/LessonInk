@@ -1,9 +1,11 @@
 import type { Board } from "../board/board.types";
 
-export const LESSONINK_FILE_APP = "LessonInk";
+export const LESSONINK_FILE_APP = "MushroomLearning";
+export const LEGACY_LESSONINK_FILE_APP = "LessonInk";
 export const LESSONINK_FILE_SCHEMA_VERSION = 1;
-export const LESSONINK_FILE_EXTENSION = ".lessonink";
-export const LESSONINK_FILE_MIME_TYPE = "application/vnd.lessonink+json";
+export const LESSONINK_FILE_EXTENSION = ".mushroomlearning";
+export const LESSONINK_LEGACY_FILE_EXTENSION = ".lessonink";
+export const LESSONINK_FILE_MIME_TYPE = "application/vnd.mushroomlearning+json";
 
 export interface LessonInkFileProjectMetadata {
   id: string;

@@ -1,14 +1,16 @@
 import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
   useCallback,
   useEffect,
   useRef,
   useState
 } from "react";
-import { Layer, Line, Rect, Stage } from "react-konva";
+import { Image as KonvaImage, Layer, Line, Rect, Stage } from "react-konva";
 import type { BoardPage } from "../../board/board.types";
-import type { CanvasToolState, Point, StrokeObject } from "../canvas.types";
+import type { CanvasToolState, CanvasViewport, Point, StrokeObject } from "../canvas.types";
+import { panViewport, zoomViewport } from "../engine/coordinateTransform";
 import { isPointNearStroke } from "../engine/hitTest";
 import { appendStablePoints, getMousePoint, getPointerPoints } from "../engine/pointerInput";
 import { createPenStroke, normalizeStrokePoints, toLinePoints } from "../engine/strokeUtils";
@@ -16,6 +18,9 @@ import { createPenStroke, normalizeStrokePoints, toLinePoints } from "../engine/
 interface CanvasStageProps {
   page: BoardPage;
   toolState: CanvasToolState;
+  viewport: CanvasViewport;
+  onViewportChange: (viewport: CanvasViewport) => void;
+  onStageSizeChange?: (size: typeof fallbackStageSize) => void;
   onAddStroke: (stroke: StrokeObject) => void;
   onEraseStrokes: (strokeIds: string[]) => void;
 }
@@ -25,14 +30,60 @@ const fallbackStageSize = {
   height: 680
 };
 
+function CanvasDocumentLayer({ page }: { page: BoardPage }) {
+  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
+  const document = page.document;
+
+  useEffect(() => {
+    if (!document || document.kind !== "image") {
+      setImageElement(null);
+      return undefined;
+    }
+
+    const image = new window.Image();
+
+    image.onload = () => setImageElement(image);
+    image.src = document.source;
+
+    return () => {
+      image.onload = null;
+    };
+  }, [document]);
+
+  if (!document || document.kind !== "image" || !imageElement) {
+    return null;
+  }
+
+  return (
+    <KonvaImage
+      image={imageElement}
+      x={document.x}
+      y={document.y}
+      width={document.width}
+      height={document.height}
+      rotation={document.rotation}
+      listening={false}
+    />
+  );
+}
+
 // TODO(Canvas v0.3+): add pressure-sensitive stroke rendering, touch gestures, zoom/pan,
 // palm rejection, drawing tablet testing, stylus-specific UX, local save/load, PDF import,
 // PDF/PNG export, presenter mode, and performance optimization for many strokes.
-export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: CanvasStageProps) {
+export function CanvasStage({
+  page,
+  toolState,
+  viewport,
+  onViewportChange,
+  onStageSizeChange,
+  onAddStroke,
+  onEraseStrokes
+}: CanvasStageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDrawingRef = useRef(false);
   const activePointerIdRef = useRef<number | undefined>(undefined);
   const lastPointerEventAtRef = useRef(0);
+  const lastPanPointRef = useRef<Point | undefined>(undefined);
   const draftPointsRef = useRef<Point[]>([]);
   const erasedStrokeIdsRef = useRef(new Set<string>());
   const [stageSize, setStageSize] = useState(fallbackStageSize);
@@ -47,10 +98,13 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
     }
 
     const updateStageSize = () => {
-      setStageSize({
+      const nextSize = {
         width: Math.max(container.clientWidth, 320),
         height: Math.max(container.clientHeight, fallbackStageSize.height)
-      });
+      };
+
+      setStageSize(nextSize);
+      onStageSizeChange?.(nextSize);
     };
     const resizeObserver = new ResizeObserver(updateStageSize);
 
@@ -58,12 +112,13 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
     resizeObserver.observe(container);
 
     return () => resizeObserver.disconnect();
-  }, []);
+  }, [onStageSizeChange]);
 
   useEffect(() => {
     isDrawingRef.current = false;
     activePointerIdRef.current = undefined;
     lastPointerEventAtRef.current = 0;
+    lastPanPointRef.current = undefined;
     draftPointsRef.current = [];
     erasedStrokeIdsRef.current.clear();
     setDraftPoints([]);
@@ -85,13 +140,13 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
   const shouldIgnoreMouseFallback = (): boolean => Date.now() - lastPointerEventAtRef.current < 700;
 
   const getEventPoints = useCallback(
-    (event: PointerEvent, target: HTMLElement): Point[] => getPointerPoints(event, target, stageSize),
-    [stageSize]
+    (event: PointerEvent, target: HTMLElement): Point[] => getPointerPoints(event, target, stageSize, viewport),
+    [stageSize, viewport]
   );
 
   const getMouseEventPoint = useCallback(
-    (event: MouseEvent, target: HTMLElement): Point => getMousePoint(event, target, stageSize),
-    [stageSize]
+    (event: MouseEvent, target: HTMLElement): Point => getMousePoint(event, target, stageSize, viewport),
+    [stageSize, viewport]
   );
 
   const capturePointer = (target: HTMLElement, pointerId: number) => {
@@ -154,6 +209,7 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
       onEraseStrokes([...erasedStrokeIdsRef.current]);
     }
 
+    lastPanPointRef.current = undefined;
     draftPointsRef.current = [];
     erasedStrokeIdsRef.current.clear();
     setDraftPoints([]);
@@ -224,6 +280,15 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
     }
 
     if (toolState.activeTool !== "pen" && toolState.activeTool !== "eraser") {
+      if (toolState.activeTool === "pan") {
+        activePointerIdRef.current = event.pointerId;
+        capturePointer(event.currentTarget, event.pointerId);
+        lastPanPointRef.current = {
+          x: event.nativeEvent.clientX,
+          y: event.nativeEvent.clientY
+        };
+      }
+
       return;
     }
 
@@ -247,7 +312,24 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
     lastPointerEventAtRef.current = Date.now();
     preventBrowserGesture(event.nativeEvent);
 
-    if (!isDrawingRef.current || !isActivePointerEvent(event.nativeEvent)) {
+    if (!isActivePointerEvent(event.nativeEvent)) {
+      return;
+    }
+
+    if (toolState.activeTool === "pan" && lastPanPointRef.current) {
+      const nextPoint = {
+        x: event.nativeEvent.clientX,
+        y: event.nativeEvent.clientY
+      };
+
+      onViewportChange(
+        panViewport(viewport, nextPoint.x - lastPanPointRef.current.x, nextPoint.y - lastPanPointRef.current.y)
+      );
+      lastPanPointRef.current = nextPoint;
+      return;
+    }
+
+    if (!isDrawingRef.current) {
       return;
     }
 
@@ -274,6 +356,13 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
     preventBrowserGesture(event.nativeEvent);
 
     if (!isActivePointerEvent(event.nativeEvent)) {
+      return;
+    }
+
+    if (toolState.activeTool === "pan") {
+      releasePointer(event.currentTarget, activePointerIdRef.current);
+      activePointerIdRef.current = undefined;
+      lastPanPointRef.current = undefined;
       return;
     }
 
@@ -314,6 +403,13 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
     }
 
     if (toolState.activeTool !== "pen" && toolState.activeTool !== "eraser") {
+      if (toolState.activeTool === "pan") {
+        lastPanPointRef.current = {
+          x: event.nativeEvent.clientX,
+          y: event.nativeEvent.clientY
+        };
+      }
+
       return;
     }
 
@@ -327,6 +423,19 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
     }
 
     preventMouseGesture(event.nativeEvent);
+
+    if (toolState.activeTool === "pan" && lastPanPointRef.current && activePointerIdRef.current === undefined) {
+      const nextPoint = {
+        x: event.nativeEvent.clientX,
+        y: event.nativeEvent.clientY
+      };
+
+      onViewportChange(
+        panViewport(viewport, nextPoint.x - lastPanPointRef.current.x, nextPoint.y - lastPanPointRef.current.y)
+      );
+      lastPanPointRef.current = nextPoint;
+      return;
+    }
 
     if (!isDrawingRef.current || activePointerIdRef.current !== undefined) {
       return;
@@ -356,7 +465,26 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
       return;
     }
 
+    if (toolState.activeTool === "pan") {
+      lastPanPointRef.current = undefined;
+      return;
+    }
+
     finishInput();
+  };
+
+  const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const anchor = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+    const direction = event.deltaY > 0 ? -1 : 1;
+    const factor = direction > 0 ? 1.1 : 0.9;
+
+    onViewportChange(zoomViewport(viewport, viewport.zoom * factor, anchor));
   };
 
   return (
@@ -366,8 +494,10 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
           width={stageSize.width}
           height={stageSize.height}
         >
-          <Layer>
+          <Layer x={viewport.panX} y={viewport.panY} scaleX={viewport.zoom} scaleY={viewport.zoom}>
             <Rect x={0} y={0} width={stageSize.width} height={stageSize.height} fill={page.background.color} />
+
+            <CanvasDocumentLayer page={page} />
 
             {page.objects.map((object) => {
               if (object.kind !== "stroke" || hiddenStrokeIds.has(object.id)) {
@@ -403,6 +533,12 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
             )}
           </Layer>
         </Stage>
+        {!page.document && page.objects.length === 0 && draftPoints.length === 0 && (
+          <div className="canvas-empty-state" aria-hidden="true">
+            <strong>Import a worksheet or start writing.</strong>
+            <span>Use Import in the top bar, or pick Pen and write directly.</span>
+          </div>
+        )}
         <div
           className="canvas-input-layer"
           aria-label={`${toolState.activeTool} input layer`}
@@ -410,6 +546,7 @@ export function CanvasStage({ page, toolState, onAddStroke, onEraseStrokes }: Ca
           onMouseLeave={handleMouseEnd}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseEnd}
+          onWheel={handleWheel}
           onLostPointerCapture={handlePointerEnd}
           onPointerCancel={handlePointerEnd}
           onPointerDown={handlePointerDown}

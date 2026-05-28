@@ -13,7 +13,7 @@ export function App() {
   return (
     <AppProviders>
       <div className="app-shell">
-        <AppHeader activeRoute={activeRoute} routes={routes} onNavigate={setActiveRoute} />
+        {activeRoute !== "board" && <AppHeader activeRoute={activeRoute} routes={routes} onNavigate={setActiveRoute} />}
         <main className="app-main">
           {activeRoute === "home" && (
             <HomePage onStartBoard={() => setActiveRoute("board")} onOpenSettings={() => setActiveRoute("settings")} />

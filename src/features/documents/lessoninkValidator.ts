@@ -1,6 +1,7 @@
-import type { Board, BoardPage, BoardPageBackground } from "../board/board.types";
+﻿import type { Board, BoardPage, BoardPageBackground, BoardPageDocument } from "../board/board.types";
 import type { CanvasObject, CanvasPointerType, Point, StrokeObject } from "../canvas/canvas.types";
 import {
+  LEGACY_LESSONINK_FILE_APP,
   LESSONINK_FILE_APP,
   LESSONINK_FILE_SCHEMA_VERSION,
   type LessonInkFileProjectMetadata,
@@ -13,6 +14,7 @@ type JsonRecord = Record<string, unknown>;
 const fallbackTimestamp = "1970-01-01T00:00:00.000Z";
 const pointerTypes: CanvasPointerType[] = ["mouse", "pen", "touch", "unknown"];
 const backgroundTypes: BoardPageBackground["type"][] = ["blank", "grid", "dots", "lined", "pdf"];
+const imageMimeTypes = ["image/png", "image/jpeg"];
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -141,6 +143,82 @@ function validateCanvasObject(
   };
 }
 
+function validatePageDocument(
+  value: unknown,
+  pageId: string,
+  context: string
+): { ok: true; document: BoardPageDocument | undefined } | { ok: false; error: string } {
+  if (value === undefined) {
+    return {
+      ok: true,
+      document: undefined
+    };
+  }
+
+  if (!isRecord(value)) {
+    return { ok: false, error: `${context} must be an object.` };
+  }
+
+  if (value.kind !== "image" && value.kind !== "pdfPage") {
+    return { ok: false, error: `${context} has an unsupported document kind.` };
+  }
+
+  if (!isString(value.id) || !isString(value.source)) {
+    return { ok: false, error: `${context} must include string id and source.` };
+  }
+
+  if (!isFiniteNumber(value.width) || !isFiniteNumber(value.height)) {
+    return { ok: false, error: `${context} must include numeric width and height.` };
+  }
+
+  const base = {
+    id: value.id,
+    pageId,
+    source: value.source,
+    x: isFiniteNumber(value.x) ? value.x : 0,
+    y: isFiniteNumber(value.y) ? value.y : 0,
+    width: value.width,
+    height: value.height,
+    rotation: isFiniteNumber(value.rotation) ? value.rotation : 0,
+    createdAt: optionalString(value.createdAt, fallbackTimestamp),
+    updatedAt: optionalString(value.updatedAt, optionalString(value.createdAt, fallbackTimestamp))
+  };
+
+  if (value.kind === "image") {
+    if (value.sourceType !== "embedded") {
+      return { ok: false, error: `${context} image document must use embedded sourceType.` };
+    }
+
+    return {
+      ok: true,
+      document: {
+        ...base,
+        kind: "image",
+        sourceType: "embedded",
+        mimeType:
+          isString(value.mimeType) && imageMimeTypes.includes(value.mimeType)
+            ? (value.mimeType as "image/png" | "image/jpeg")
+            : "image/png",
+        altText: isString(value.altText) ? value.altText : undefined
+      }
+    };
+  }
+
+  if (value.sourceType !== "embeddedRender" && value.sourceType !== "localReference") {
+    return { ok: false, error: `${context} PDF document has an unsupported sourceType.` };
+  }
+
+  return {
+    ok: true,
+    document: {
+      ...base,
+      kind: "pdfPage",
+      sourceType: value.sourceType,
+      pdfPageNumber: isFiniteNumber(value.pdfPageNumber) ? value.pdfPageNumber : 1
+    }
+  };
+}
+
 function validateBackground(value: unknown): BoardPageBackground {
   if (!isRecord(value)) {
     return {
@@ -168,6 +246,12 @@ function validatePage(value: unknown, index: number): { ok: true; page: BoardPag
   }
 
   const pageId = optionalString(value.id, `page-${index + 1}`);
+  const documentResult = validatePageDocument(value.document, pageId, `board.pages[${index}].document`);
+
+  if (!documentResult.ok) {
+    return documentResult;
+  }
+
   const objects: CanvasObject[] = [];
 
   for (const [objectIndex, objectValue] of value.objects.entries()) {
@@ -194,6 +278,7 @@ function validatePage(value: unknown, index: number): { ok: true; page: BoardPag
       title: optionalString(value.title, `Page ${index + 1}`),
       index: isFiniteNumber(value.index) ? value.index : index,
       background: validateBackground(value.background),
+      document: documentResult.document,
       objects,
       createdAt: optionalString(value.createdAt, fallbackTimestamp),
       updatedAt: optionalString(value.updatedAt, optionalString(value.createdAt, fallbackTimestamp))
@@ -265,15 +350,15 @@ function validateProject(value: unknown, board: Board): LessonInkFileProjectMeta
 
 export function validateLessonInkFile(value: unknown): LessonInkValidationResult {
   if (!isRecord(value)) {
-    return { ok: false, error: "The selected file is not a LessonInk project." };
+    return { ok: false, error: "The selected file is not a MushroomLearning project." };
   }
 
   if (value.schemaVersion !== LESSONINK_FILE_SCHEMA_VERSION) {
-    return { ok: false, error: "Unsupported LessonInk file version." };
+    return { ok: false, error: "Unsupported MushroomLearning file version." };
   }
 
-  if (value.app !== LESSONINK_FILE_APP) {
-    return { ok: false, error: "The selected file was not created by LessonInk." };
+  if (value.app !== LESSONINK_FILE_APP && value.app !== LEGACY_LESSONINK_FILE_APP) {
+    return { ok: false, error: "The selected file was not created by MushroomLearning." };
   }
 
   const boardResult = validateBoard(value.board);

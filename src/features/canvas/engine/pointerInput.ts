@@ -1,4 +1,5 @@
-import type { CanvasPointerType, Point } from "../canvas.types";
+import type { CanvasPointerType, CanvasViewport, Point } from "../canvas.types";
+import { viewportPointToCanvasPoint } from "./coordinateTransform";
 
 const minimumPointDistance = 0.5;
 
@@ -19,7 +20,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function toCanvasPoint(event: PointerEvent, target: HTMLElement, size: PointerSurfaceSize): Point {
+function toViewportPoint(event: PointerEvent, target: HTMLElement, size: PointerSurfaceSize): Point {
   const rect = target.getBoundingClientRect();
   const scaleX = rect.width > 0 ? size.width / rect.width : 1;
   const scaleY = rect.height > 0 ? size.height / rect.height : 1;
@@ -32,22 +33,53 @@ function toCanvasPoint(event: PointerEvent, target: HTMLElement, size: PointerSu
   };
 }
 
-export function getPointerPoints(event: PointerEvent, target: HTMLElement, size: PointerSurfaceSize): Point[] {
+export function getPointerPoints(
+  event: PointerEvent,
+  target: HTMLElement,
+  size: PointerSurfaceSize,
+  viewport?: CanvasViewport
+): Point[] {
   const coalescedEvents =
     typeof event.getCoalescedEvents === "function" ? event.getCoalescedEvents() : [event];
   const events = coalescedEvents.length > 0 ? coalescedEvents : [event];
 
-  return events.map((coalescedEvent) => toCanvasPoint(coalescedEvent, target, size));
+  return events.map((coalescedEvent) => {
+    const viewportPoint = toViewportPoint(coalescedEvent, target, size);
+
+    if (!viewport) {
+      return viewportPoint;
+    }
+
+    return {
+      ...viewportPointToCanvasPoint(viewportPoint, viewport),
+      inputType: viewportPoint.inputType,
+      pressure: viewportPoint.pressure
+    };
+  });
 }
 
-export function getMousePoint(event: MouseEvent, target: HTMLElement, size: PointerSurfaceSize): Point {
+export function getMousePoint(
+  event: MouseEvent,
+  target: HTMLElement,
+  size: PointerSurfaceSize,
+  viewport?: CanvasViewport
+): Point {
   const rect = target.getBoundingClientRect();
   const scaleX = rect.width > 0 ? size.width / rect.width : 1;
   const scaleY = rect.height > 0 ? size.height / rect.height : 1;
 
-  return {
+  const viewportPoint: Point = {
     x: clamp((event.clientX - rect.left) * scaleX, 0, size.width),
     y: clamp((event.clientY - rect.top) * scaleY, 0, size.height),
+    inputType: "mouse"
+  };
+
+  if (!viewport) {
+    return viewportPoint;
+  }
+
+  return {
+    ...viewportPointToCanvasPoint(viewportPoint, viewport),
     inputType: "mouse"
   };
 }

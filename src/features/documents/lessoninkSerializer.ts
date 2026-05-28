@@ -70,5 +70,5 @@ export function sanitizeLessonInkFileName(title: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return `${safeName || "lessonink-project"}.lessonink`;
+  return `${safeName || "mushroomlearning-project"}.mushroomlearning`;
 }

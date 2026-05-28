@@ -1,15 +1,15 @@
-# Danh sách tính năng
+﻿# Danh sách tính năng
 
 ## P0
 
 - Canvas bảng trắng.
 - Công cụ bút.
 - Tẩy.
-- Highlight.
+- Tô sáng.
 - Công cụ văn bản.
 - Bảng nhiều trang.
 - Nhập PDF.
-- Pan và zoom.
+- Di chuyển bảng và phóng to/thu nhỏ.
 - Chế độ trình bày.
 - Lưu/tải cục bộ.
 - Xuất PDF/PNG.
@@ -28,8 +28,8 @@
 ## Trì hoãn
 
 - Đăng nhập người dùng.
-- Đồng bộ cloud.
-- Link cho học sinh tham gia.
+- Đồng bộ đám mây.
+- Đường dẫn cho học sinh tham gia.
 - Cộng tác thời gian thực.
 - Tích hợp SDK nền tảng họp.
 - Tạo giáo án bằng AI.

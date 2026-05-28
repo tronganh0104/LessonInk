@@ -1,4 +1,4 @@
-import type { AppRoute, RouteDefinition } from "../../app/routes";
+﻿import type { AppRoute, RouteDefinition } from "../../app/routes";
 
 interface AppHeaderProps {
   activeRoute: AppRoute;
@@ -10,7 +10,7 @@ export function AppHeader({ activeRoute, routes, onNavigate }: AppHeaderProps) {
   return (
     <header className="app-header">
       <div>
-        <strong>LessonInk</strong>
+        <strong>MushroomLearning</strong>
         <span>Desktop</span>
       </div>
       <nav aria-label="Primary navigation">

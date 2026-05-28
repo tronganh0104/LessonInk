@@ -4,7 +4,7 @@ import { validateLessonInkFile } from "../../src/features/documents/lessoninkVal
 function createValidFile(overrides: Record<string, unknown> = {}) {
   return {
     schemaVersion: 1,
-    app: "LessonInk",
+    app: "MushroomLearning",
     project: {
       id: "project-1",
       title: "Algebra lesson",
@@ -65,12 +65,51 @@ describe("validateLessonInkFile", () => {
     expect(result.ok && result.file.board.pages[0].objects).toHaveLength(1);
   });
 
+  it("accepts an embedded image document layer separate from strokes", () => {
+    const result = validateLessonInkFile(
+      createValidFile({
+        board: {
+          ...createValidFile().board,
+          pages: [
+            {
+              ...createValidFile().board.pages[0],
+              document: {
+                id: "image-1",
+                pageId: "stale-page-id",
+                kind: "image",
+                sourceType: "embedded",
+                source: "data:image/png;base64,aW1hZ2U=",
+                mimeType: "image/png",
+                altText: "worksheet.png",
+                x: 10,
+                y: 20,
+                width: 640,
+                height: 480,
+                rotation: 0,
+                createdAt: "2026-05-28T00:00:00.000Z",
+                updatedAt: "2026-05-28T00:00:00.000Z"
+              }
+            }
+          ]
+        }
+      })
+    );
+
+    expect(result.ok && result.file.board.pages[0].document).toMatchObject({
+      kind: "image",
+      pageId: "page-1",
+      width: 640,
+      height: 480
+    });
+    expect(result.ok && result.file.board.pages[0].objects).toHaveLength(1);
+  });
+
   it("rejects an unsupported schemaVersion", () => {
     const result = validateLessonInkFile(createValidFile({ schemaVersion: 2 }));
 
     expect(result).toEqual({
       ok: false,
-      error: "Unsupported LessonInk file version."
+      error: "Unsupported MushroomLearning file version."
     });
   });
 
@@ -79,8 +118,15 @@ describe("validateLessonInkFile", () => {
 
     expect(result).toEqual({
       ok: false,
-      error: "The selected file was not created by LessonInk."
+      error: "The selected file was not created by MushroomLearning."
     });
+  });
+
+  it("accepts legacy LessonInk files for backward compatibility", () => {
+    const result = validateLessonInkFile(createValidFile({ app: "LessonInk" }));
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.file.app).toBe("MushroomLearning");
   });
 
   it("rejects a missing board", () => {

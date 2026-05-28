@@ -1,5 +1,6 @@
 import {
   LESSONINK_FILE_EXTENSION,
+  LESSONINK_LEGACY_FILE_EXTENSION,
   LESSONINK_FILE_MIME_TYPE,
   type LessonInkFileProjectMetadata
 } from "./lessoninkFile.types";
@@ -15,7 +16,10 @@ export function downloadLessonInkFile(contents: string, fileName: string): void 
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = fileName.endsWith(LESSONINK_FILE_EXTENSION) ? fileName : `${fileName}${LESSONINK_FILE_EXTENSION}`;
+  link.download =
+    fileName.endsWith(LESSONINK_FILE_EXTENSION) || fileName.endsWith(LESSONINK_LEGACY_FILE_EXTENSION)
+      ? fileName
+      : `${fileName}${LESSONINK_FILE_EXTENSION}`;
   link.style.display = "none";
   document.body.appendChild(link);
   link.click();
