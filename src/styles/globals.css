@@ -1244,7 +1244,7 @@ button {
 }
 
 .canvas-surface.tool-select {
-  cursor: default;
+  cursor: move;
 }
 
 .canvas-placeholder {

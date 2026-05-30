@@ -9,10 +9,11 @@ import {
 } from "react";
 import { Image as KonvaImage, Layer, Line, Rect, Stage, Text as KonvaText } from "react-konva";
 import type { BoardPage } from "../../board/board.types";
-import type { CanvasObject, CanvasToolState, CanvasViewport, Point, StrokeObject } from "../canvas.types";
+import type { CanvasObject, CanvasToolState, CanvasViewport, Point, StrokeObject, TextObject } from "../canvas.types";
 import { panViewport, zoomViewport } from "../engine/coordinateTransform";
 import { isPointNearStroke } from "../engine/hitTest";
 import { appendStablePoints, getMousePoint, getPointerPoints } from "../engine/pointerInput";
+import { moveObjectInList } from "../objects/objectTransforms";
 import { createPenStroke, normalizeStrokePoints, toLinePoints } from "../engine/strokeUtils";
 import { createTextObject } from "../objects/objectFactory";
 
@@ -24,6 +25,7 @@ interface CanvasStageProps {
   onStageSizeChange?: (size: typeof fallbackStageSize) => void;
   onAddObject: (object: CanvasObject) => void;
   onEraseStrokes: (strokeIds: string[]) => void;
+  onMoveObject: (pageId: string, before: CanvasObject[], after: CanvasObject[], objectId: string) => void;
 }
 
 const fallbackStageSize = {
@@ -78,7 +80,8 @@ export function CanvasStage({
   onViewportChange,
   onStageSizeChange,
   onAddObject,
-  onEraseStrokes
+  onEraseStrokes,
+  onMoveObject
 }: CanvasStageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDrawingRef = useRef(false);
@@ -87,6 +90,16 @@ export function CanvasStage({
   const lastPanPointRef = useRef<Point | undefined>(undefined);
   const draftPointsRef = useRef<Point[]>([]);
   const erasedStrokeIdsRef = useRef(new Set<string>());
+  const selectedObjectIdRef = useRef<string | undefined>(undefined);
+  const activeMoveRef = useRef<
+    | {
+        objectId: string;
+        startPoint: Point;
+        before: CanvasObject[];
+        latest: CanvasObject[];
+      }
+    | undefined
+  >(undefined);
   interface EditingText {
     x: number;
     y: number;
@@ -98,7 +111,14 @@ export function CanvasStage({
   const [draftPoints, setDraftPoints] = useState<Point[]>([]);
   const [hiddenStrokeIds, setHiddenStrokeIds] = useState<Set<string>>(() => new Set());
   const [editingText, setEditingText] = useState<EditingText | null>(null);
+  const [selectedObjectId, setSelectedObjectId] = useState<string | undefined>(undefined);
+  const [movingObjects, setMovingObjects] = useState<CanvasObject[] | undefined>(undefined);
   const editingTextRef = useRef<EditingText | null>(null);
+  const renderedObjects = movingObjects ?? page.objects;
+  const selectedText =
+    toolState.activeTool === "select"
+      ? renderedObjects.find((object): object is TextObject => object.kind === "text" && object.id === selectedObjectId)
+      : undefined;
 
   const finishTextEditing = useCallback(() => {
     const current = editingTextRef.current;
@@ -150,8 +170,12 @@ export function CanvasStage({
     lastPanPointRef.current = undefined;
     draftPointsRef.current = [];
     erasedStrokeIdsRef.current.clear();
+    selectedObjectIdRef.current = undefined;
+    activeMoveRef.current = undefined;
     editingTextRef.current = null;
     setEditingText(null);
+    setSelectedObjectId(undefined);
+    setMovingObjects(undefined);
     setDraftPoints([]);
     setHiddenStrokeIds(new Set());
   }, [page.id, toolState.activeTool]);
@@ -209,6 +233,78 @@ export function CanvasStage({
   const isActivePointerEvent = (event: PointerEvent): boolean =>
     activePointerIdRef.current === undefined || event.pointerId === activePointerIdRef.current;
 
+  const findTextAtPoint = useCallback(
+    (point: Point): TextObject | undefined =>
+      [...page.objects]
+        .reverse()
+        .find(
+          (object): object is TextObject =>
+            object.kind === "text" &&
+            !object.locked &&
+            point.x >= object.x &&
+            point.x <= object.x + object.width &&
+            point.y >= object.y &&
+            point.y <= object.y + object.height
+        ),
+    [page.objects]
+  );
+
+  const beginObjectMove = (object: TextObject, point: Point, pointerId?: number, target?: HTMLElement) => {
+    selectedObjectIdRef.current = object.id;
+    setSelectedObjectId(object.id);
+    activeMoveRef.current = {
+      objectId: object.id,
+      startPoint: point,
+      before: page.objects,
+      latest: page.objects
+    };
+    activePointerIdRef.current = pointerId;
+
+    if (pointerId !== undefined && target) {
+      capturePointer(target, pointerId);
+    }
+  };
+
+  const updateObjectMove = (point: Point) => {
+    const activeMove = activeMoveRef.current;
+
+    if (!activeMove) {
+      return;
+    }
+
+    const deltaX = point.x - activeMove.startPoint.x;
+    const deltaY = point.y - activeMove.startPoint.y;
+    const latest = moveObjectInList(activeMove.before, activeMove.objectId, deltaX, deltaY);
+
+    activeMove.latest = latest;
+    setMovingObjects(latest);
+  };
+
+  const finishObjectMove = useCallback(() => {
+    const activeMove = activeMoveRef.current;
+
+    if (!activeMove) {
+      return;
+    }
+
+    activeMoveRef.current = undefined;
+    activePointerIdRef.current = undefined;
+    setMovingObjects(undefined);
+
+    const beforeObject = activeMove.before.find((object) => object.id === activeMove.objectId);
+    const afterObject = activeMove.latest.find((object) => object.id === activeMove.objectId);
+    const didMove =
+      beforeObject &&
+      afterObject &&
+      (beforeObject.x !== afterObject.x ||
+        beforeObject.y !== afterObject.y ||
+        JSON.stringify(beforeObject) !== JSON.stringify(afterObject));
+
+    if (didMove) {
+      onMoveObject(page.id, activeMove.before, activeMove.latest, activeMove.objectId);
+    }
+  }, [onMoveObject, page.id]);
+
   const finishInput = useCallback(() => {
     const activePointerId = activePointerIdRef.current;
     const inputTarget = containerRef.current?.querySelector<HTMLElement>(".canvas-input-layer") ?? null;
@@ -263,10 +359,20 @@ export function CanvasStage({
   useEffect(() => {
     const handleWindowPointerEnd = (event: PointerEvent) => {
       if (event.pointerId === activePointerIdRef.current) {
+        if (activeMoveRef.current) {
+          finishObjectMove();
+          return;
+        }
+
         finishInput();
       }
     };
     const handleWindowMouseEnd = () => {
+      if (activeMoveRef.current && activePointerIdRef.current === undefined && !shouldIgnoreMouseFallback()) {
+        finishObjectMove();
+        return;
+      }
+
       if (isDrawingRef.current && activePointerIdRef.current === undefined && !shouldIgnoreMouseFallback()) {
         finishInput();
       }
@@ -276,14 +382,16 @@ export function CanvasStage({
     window.addEventListener("pointercancel", handleWindowPointerEnd);
     window.addEventListener("mouseup", handleWindowMouseEnd);
     window.addEventListener("blur", finishInput);
+    window.addEventListener("blur", finishObjectMove);
 
     return () => {
       window.removeEventListener("pointerup", handleWindowPointerEnd);
       window.removeEventListener("pointercancel", handleWindowPointerEnd);
       window.removeEventListener("mouseup", handleWindowMouseEnd);
       window.removeEventListener("blur", finishInput);
+      window.removeEventListener("blur", finishObjectMove);
     };
-  }, [finishInput]);
+  }, [finishInput, finishObjectMove]);
 
   const eraseAtPoint = useCallback(
     (point: Point) => {
@@ -318,6 +426,19 @@ export function CanvasStage({
     const point = points[points.length - 1];
 
     if (!point) {
+      return;
+    }
+
+    if (toolState.activeTool === "select") {
+      const hitText = findTextAtPoint(point);
+
+      if (!hitText) {
+        selectedObjectIdRef.current = undefined;
+        setSelectedObjectId(undefined);
+        return;
+      }
+
+      beginObjectMove(hitText, point, event.pointerId, event.currentTarget);
       return;
     }
 
@@ -378,6 +499,17 @@ export function CanvasStage({
       return;
     }
 
+    if (toolState.activeTool === "select" && activeMoveRef.current) {
+      const points = getEventPoints(event.nativeEvent, event.currentTarget);
+      const point = points[points.length - 1];
+
+      if (point) {
+        updateObjectMove(point);
+      }
+
+      return;
+    }
+
     if (toolState.activeTool === "pan" && lastPanPointRef.current) {
       const nextPoint = {
         x: event.nativeEvent.clientX,
@@ -425,6 +557,12 @@ export function CanvasStage({
       releasePointer(event.currentTarget, activePointerIdRef.current);
       activePointerIdRef.current = undefined;
       lastPanPointRef.current = undefined;
+      return;
+    }
+
+    if (toolState.activeTool === "select") {
+      releasePointer(event.currentTarget, activePointerIdRef.current);
+      finishObjectMove();
       return;
     }
 
@@ -485,6 +623,20 @@ export function CanvasStage({
       return;
     }
 
+    if (toolState.activeTool === "select") {
+      const point = getMouseEventPoint(event.nativeEvent, event.currentTarget);
+      const hitText = findTextAtPoint(point);
+
+      if (!hitText) {
+        selectedObjectIdRef.current = undefined;
+        setSelectedObjectId(undefined);
+        return;
+      }
+
+      beginObjectMove(hitText, point);
+      return;
+    }
+
     if (toolState.activeTool !== "pen" && toolState.activeTool !== "highlighter" && toolState.activeTool !== "eraser") {
       if (toolState.activeTool === "pan") {
         lastPanPointRef.current = {
@@ -517,6 +669,11 @@ export function CanvasStage({
         panViewport(viewport, nextPoint.x - lastPanPointRef.current.x, nextPoint.y - lastPanPointRef.current.y)
       );
       lastPanPointRef.current = nextPoint;
+      return;
+    }
+
+    if (toolState.activeTool === "select" && activeMoveRef.current && activePointerIdRef.current === undefined) {
+      updateObjectMove(getMouseEventPoint(event.nativeEvent, event.currentTarget));
       return;
     }
 
@@ -553,6 +710,11 @@ export function CanvasStage({
       return;
     }
 
+    if (toolState.activeTool === "select") {
+      finishObjectMove();
+      return;
+    }
+
     finishInput();
   };
 
@@ -582,7 +744,7 @@ export function CanvasStage({
 
             <CanvasDocumentLayer page={page} />
 
-            {page.objects.map((object) => {
+            {renderedObjects.map((object) => {
               if (object.kind !== "stroke" || hiddenStrokeIds.has(object.id)) {
                 return null;
               }
@@ -603,7 +765,7 @@ export function CanvasStage({
               );
             })}
 
-            {page.objects.map((object) => {
+            {renderedObjects.map((object) => {
               if (object.kind !== "text") {
                 return null;
               }
@@ -635,6 +797,19 @@ export function CanvasStage({
                 lineJoin="round"
                 tension={0.35}
                 globalCompositeOperation={toolState.activeTool === "highlighter" ? "multiply" : "source-over"}
+                listening={false}
+              />
+            )}
+
+            {selectedText && (
+              <Rect
+                x={selectedText.x - 4}
+                y={selectedText.y - 4}
+                width={selectedText.width + 8}
+                height={selectedText.height + 8}
+                stroke="#c73646"
+                strokeWidth={1.5 / viewport.zoom}
+                dash={[6 / viewport.zoom, 4 / viewport.zoom]}
                 listening={false}
               />
             )}

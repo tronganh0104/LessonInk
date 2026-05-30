@@ -21,6 +21,11 @@ export type CanvasHistoryAction =
       pageId: string;
     }
   | {
+      type: "moveObject";
+      pageId: string;
+      objectId: string;
+    }
+  | {
       type: "addStroke";
       pageId: string;
       strokeId: string;

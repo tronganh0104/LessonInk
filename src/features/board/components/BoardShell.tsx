@@ -200,7 +200,9 @@ export function BoardShell() {
         return;
       }
 
-      if (event.key === "PageUp" || (event.key === "ArrowLeft" && event.altKey)) {
+      if (event.key === "Escape") {
+        setToolState((current) => (current.activeTool === "select" ? { ...current, activeTool: "pan" } : current));
+      } else if (event.key === "PageUp" || (event.key === "ArrowLeft" && event.altKey)) {
         event.preventDefault();
         handleGoToPreviousPage();
       } else if (event.key === "PageDown" || (event.key === "ArrowRight" && event.altKey)) {
@@ -258,6 +260,14 @@ export function BoardShell() {
           };
 
     commitObjects(activePage.id, before, after, action);
+  };
+
+  const handleMoveObject = (pageId: string, before: CanvasObject[], after: CanvasObject[], objectId: string) => {
+    commitObjects(pageId, before, after, {
+      type: "moveObject",
+      pageId,
+      objectId
+    });
   };
 
   const handleClearCanvas = () => {
@@ -662,6 +672,7 @@ export function BoardShell() {
           onStageSizeChange={setStageSize}
           onAddObject={handleAddObject}
           onEraseStrokes={handleEraseStrokes}
+          onMoveObject={handleMoveObject}
         />
       </div>
 

@@ -246,6 +246,32 @@ describe("deserializeLessonInkFile", () => {
     expect(loadedProject.board.pages[0].objects).toEqual([text]);
   });
 
+  it("preserves moved text annotation positions", () => {
+    const text = {
+      ...createTextObject("page-1"),
+      x: 320,
+      y: 180,
+      updatedAt: "2026-05-28T01:00:00.000Z"
+    };
+    const board = createBoard({
+      pages: [
+        {
+          ...createBoard().pages[0],
+          objects: [text]
+        }
+      ]
+    });
+
+    const loadedProject = deserializeLessonInkFile(serializeLessonInkFile(board));
+
+    expect(loadedProject.board.pages[0].objects[0]).toMatchObject({
+      id: "text-1",
+      kind: "text",
+      x: 320,
+      y: 180
+    });
+  });
+
   it("handles missing optional metadata fields safely", () => {
     const fileWithoutOptionalMetadata = {
       schemaVersion: 1,

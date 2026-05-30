@@ -1,5 +1,5 @@
 import { 
-  Hand, Pencil, Highlighter, Type, Eraser, 
+  Hand, MousePointer2, Pencil, Highlighter, Type, Eraser, 
   Undo2, Redo2, Trash2, Save, FolderOpen, 
   Image as ImageIcon, FileText, Play, LogOut,
   ChevronLeft, ChevronRight
@@ -45,6 +45,12 @@ const teachingTools: Array<{
     icon: Hand,
     label: "Hand",
     title: "Pan the canvas"
+  },
+  {
+    id: "select",
+    icon: MousePointer2,
+    label: "Select",
+    title: "Select and move text"
   },
   {
     id: "pen",
@@ -112,6 +118,8 @@ export function CanvasToolbar({
         ? toolState.textColor
         : toolState.penColor;
   const activeSizeLabel = toolState.activeTool === "text" ? "Size" : "Stroke";
+  const showsToolSettings =
+    toolState.activeTool === "pen" || toolState.activeTool === "highlighter" || toolState.activeTool === "text";
   const activeColorLabel =
     toolState.activeTool === "highlighter"
       ? "Highlighter"
@@ -122,7 +130,7 @@ export function CanvasToolbar({
   const toolRail = (
     <div className={isPresenterMode ? "tool-rail presenter-tool-rail" : "tool-rail"} role="group" aria-label="Teaching tools">
       <div className="rail-tool-group" role="group" aria-label="Move around">
-        {teachingTools.slice(0, 1).map((tool) => {
+        {teachingTools.slice(0, 2).map((tool) => {
           const Icon = tool.icon;
           return (
             <button
@@ -141,7 +149,7 @@ export function CanvasToolbar({
       </div>
 
       <div className="rail-tool-group" role="group" aria-label="Ink tools">
-        {teachingTools.slice(1).map((tool) => {
+        {teachingTools.slice(2).map((tool) => {
           const Icon = tool.icon;
           return (
             <button
@@ -168,7 +176,7 @@ export function CanvasToolbar({
         </button>
       </div>
 
-      {!isPresenterMode && (
+      {!isPresenterMode && showsToolSettings && (
         <div className="rail-pen-settings" aria-label="Active tool settings">
           <span className="rail-setting-label">{activeColorLabel}</span>
           <label className="tool-setting color-setting">

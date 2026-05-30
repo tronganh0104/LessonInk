@@ -140,6 +140,41 @@ describe("canvas history", () => {
     expect(nextHistory.redoStack).toEqual([]);
   });
 
+  it("undoes and redoes a move object action", () => {
+    const before = [
+      {
+        ...createStroke("stroke-1"),
+        kind: "text" as const,
+        text: "Moved text",
+        fontFamily: "Inter, Arial, sans-serif",
+        fontSize: 24,
+        height: 34,
+        width: 160,
+        x: 20,
+        y: 30
+      }
+    ];
+    const after = [
+      {
+        ...before[0],
+        x: 80,
+        y: 90
+      }
+    ];
+    const history = recordCanvasHistory(
+      initialCanvasHistoryState,
+      { type: "moveObject", pageId: "page-1", objectId: "stroke-1" },
+      before,
+      after
+    );
+
+    const undoResult = undoCanvasHistory(history);
+    expect(undoResult?.objects).toEqual(before);
+
+    const redoResult = redoCanvasHistory(undoResult!.history);
+    expect(redoResult?.objects).toEqual(after);
+  });
+
   it("caps undo history to protect long teaching sessions from unbounded growth", () => {
     let history = initialCanvasHistoryState;
 
