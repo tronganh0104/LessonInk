@@ -104,6 +104,45 @@ describe("validateLessonInkFile", () => {
     expect(result.ok && result.file.board.pages[0].objects).toHaveLength(1);
   });
 
+  it("accepts text annotations", () => {
+    const result = validateLessonInkFile(
+      createValidFile({
+        board: {
+          ...createValidFile().board,
+          pages: [
+            {
+              ...createValidFile().board.pages[0],
+              objects: [
+                {
+                  id: "text-1",
+                  pageId: "page-1",
+                  kind: "text",
+                  text: "Factor first",
+                  fontFamily: "Inter, Arial, sans-serif",
+                  fontSize: 24,
+                  color: "#111827",
+                  width: 220,
+                  height: 34,
+                  x: 40,
+                  y: 60,
+                  rotation: 0,
+                  locked: false,
+                  createdAt: "2026-05-28T00:00:00.000Z",
+                  updatedAt: "2026-05-28T00:00:00.000Z"
+                }
+              ]
+            }
+          ]
+        }
+      })
+    );
+
+    expect(result.ok && result.file.board.pages[0].objects[0]).toMatchObject({
+      kind: "text",
+      text: "Factor first"
+    });
+  });
+
   it("rejects an unsupported schemaVersion", () => {
     const result = validateLessonInkFile(createValidFile({ schemaVersion: 2 }));
 

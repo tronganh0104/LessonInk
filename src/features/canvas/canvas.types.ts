@@ -94,5 +94,9 @@ export interface CanvasToolState {
   activeTool: ToolType;
   penColor: string;
   penWidth: number;
+  highlighterColor: string;
+  highlighterWidth: number;
+  textColor: string;
+  textSize: number;
   eraserRadius: number;
 }

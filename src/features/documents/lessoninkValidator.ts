@@ -1,5 +1,5 @@
 ﻿import type { Board, BoardPage, BoardPageBackground, BoardPageDocument } from "../board/board.types";
-import type { CanvasObject, CanvasPointerType, Point, StrokeObject } from "../canvas/canvas.types";
+import type { CanvasObject, CanvasPointerType, Point, StrokeObject, TextObject } from "../canvas/canvas.types";
 import {
   LEGACY_LESSONINK_FILE_APP,
   LESSONINK_FILE_APP,
@@ -119,6 +119,41 @@ function validateStroke(value: JsonRecord, context: string): { ok: true; stroke:
   };
 }
 
+function validateText(value: JsonRecord, context: string): { ok: true; text: TextObject } | { ok: false; error: string } {
+  if (value.kind !== "text") {
+    return { ok: false, error: `${context} must be a text object.` };
+  }
+
+  if (!isString(value.id) || !isString(value.pageId)) {
+    return { ok: false, error: `${context} must include string id and pageId.` };
+  }
+
+  if (!isString(value.text)) {
+    return { ok: false, error: `${context} must include text.` };
+  }
+
+  return {
+    ok: true,
+    text: {
+      id: value.id,
+      pageId: value.pageId,
+      kind: "text",
+      text: value.text,
+      fontFamily: optionalString(value.fontFamily, "Inter, Arial, sans-serif"),
+      fontSize: isFiniteNumber(value.fontSize) ? value.fontSize : 24,
+      color: optionalString(value.color, "#111827"),
+      width: isFiniteNumber(value.width) ? value.width : 240,
+      height: isFiniteNumber(value.height) ? value.height : 34,
+      x: isFiniteNumber(value.x) ? value.x : 0,
+      y: isFiniteNumber(value.y) ? value.y : 0,
+      rotation: isFiniteNumber(value.rotation) ? value.rotation : 0,
+      locked: isBoolean(value.locked) ? value.locked : false,
+      createdAt: optionalString(value.createdAt, fallbackTimestamp),
+      updatedAt: optionalString(value.updatedAt, optionalString(value.createdAt, fallbackTimestamp))
+    }
+  };
+}
+
 function validateCanvasObject(
   value: unknown,
   context: string
@@ -127,11 +162,11 @@ function validateCanvasObject(
     return { ok: false, error: `${context} must be an object.` };
   }
 
-  if (value.kind !== "stroke") {
+  if (value.kind !== "stroke" && value.kind !== "text") {
     return { ok: false, error: `${context} has an unsupported object kind.` };
   }
 
-  const result = validateStroke(value, context);
+  const result = value.kind === "stroke" ? validateStroke(value, context) : validateText(value, context);
 
   if (!result.ok) {
     return result;
@@ -139,7 +174,7 @@ function validateCanvasObject(
 
   return {
     ok: true,
-    object: result.stroke
+    object: "stroke" in result ? result.stroke : result.text
   };
 }
 

@@ -88,4 +88,35 @@ describe("getPagePngExportBounds", () => {
       height: 770
     });
   });
+
+  it("expands to include text annotations", () => {
+    const page = createPage({
+      objects: [
+        {
+          id: "text-1",
+          pageId: "page-1",
+          kind: "text",
+          text: "Answer",
+          fontFamily: "Inter, Arial, sans-serif",
+          fontSize: 24,
+          color: "#111827",
+          width: 220,
+          height: 40,
+          x: 980,
+          y: 700,
+          rotation: 0,
+          locked: false,
+          createdAt: "2026-05-28T00:00:00.000Z",
+          updatedAt: "2026-05-28T00:00:00.000Z"
+        }
+      ]
+    });
+
+    expect(getPagePngExportBounds(page, 960, 680)).toEqual({
+      x: 0,
+      y: 0,
+      width: 1200,
+      height: 740
+    });
+  });
 });

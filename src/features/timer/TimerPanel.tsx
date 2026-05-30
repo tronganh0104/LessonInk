@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Pause, Play, RotateCcw } from "lucide-react";
 import type { TimerState } from "./timer.store";
 
 interface TimerPanelProps {
@@ -17,13 +19,48 @@ function formatTime(totalSeconds: number): string {
 }
 
 export function TimerPanel({ state, compact = false, onDurationChange, onStart, onPause, onReset }: TimerPanelProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const minutes = Math.max(1, Math.round(state.durationSeconds / 60));
+  const primaryLabel = state.isRunning ? "Pause" : state.secondsRemaining < state.durationSeconds ? "Resume" : "Start";
 
   return (
-    <section className={state.isFinished ? "utility-panel timer-finished" : "utility-panel"}>
-      <h2>Timer</h2>
-      <div className="timer-display">{formatTime(state.secondsRemaining)}</div>
-      {!compact && (
+    <section className={state.isFinished ? "utility-panel timer-panel timer-finished" : "utility-panel timer-panel"}>
+      <div className="timer-core">
+        <span className="timer-label">Timer</span>
+        <button
+          className="timer-display-button"
+          type="button"
+          onClick={() => !compact && setIsExpanded((current) => !current)}
+          aria-expanded={compact ? undefined : isExpanded}
+          title={compact ? "Timer" : "Timer settings"}
+        >
+          {formatTime(state.secondsRemaining)}
+        </button>
+        <div className="action-row compact">
+          <button
+            className="secondary-button timer-control"
+            type="button"
+            onClick={state.isRunning ? onPause : onStart}
+            title={state.isRunning ? "Pause timer" : "Start timer"}
+            aria-label={state.isRunning ? "Pause timer" : "Start timer"}
+          >
+            {compact ? (
+              state.isRunning ? <Pause size={14} /> : <Play size={14} fill="currentColor" />
+            ) : (
+              primaryLabel
+            )}
+          </button>
+          <button className="secondary-button timer-control" type="button" onClick={onReset} title="Reset timer" aria-label="Reset timer">
+            {compact ? <RotateCcw size={14} /> : "Reset"}
+          </button>
+        </div>
+        {!compact && (
+          <button className="timer-link-button" type="button" onClick={() => setIsExpanded((current) => !current)}>
+            {isExpanded ? "Hide" : "Set"}
+          </button>
+        )}
+      </div>
+      {!compact && isExpanded && (
         <label className="timer-duration">
           <span>Minutes</span>
           <input
@@ -35,14 +72,6 @@ export function TimerPanel({ state, compact = false, onDurationChange, onStart, 
           />
         </label>
       )}
-      <div className="action-row compact">
-        <button className="secondary-button" type="button" onClick={state.isRunning ? onPause : onStart}>
-          {state.isRunning ? "Pause" : state.secondsRemaining < state.durationSeconds ? "Resume" : "Start"}
-        </button>
-        <button className="secondary-button" type="button" onClick={onReset}>
-          Reset
-        </button>
-      </div>
       {state.isFinished && <p className="timer-up" role="status">Time up</p>}
     </section>
   );

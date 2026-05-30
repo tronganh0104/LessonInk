@@ -1,11 +1,54 @@
 :root {
-  --color-bg: #fff5f7;
-  --color-panel: #ffffff;
-  --color-ink: #2a1620;
-  --color-muted: #7f5263;
-  --color-line: #f1c9d4;
-  --color-accent: #e11d48;
-  --color-accent-strong: #be123c;
-  --color-warm: #fb7185;
-  --shadow-soft: 0 14px 45px rgba(136, 19, 55, 0.11);
+  /* Design Tokens - Core Palette (Rose Red Inspired) */
+  --h: 352;
+  --s: 59%;
+  --l: 49%;
+
+  /* Light Theme (Default) */
+  --color-bg: hsl(210, 40%, 98%);
+  --color-panel: hsl(0, 0%, 100%);
+  --color-ink: hsl(222, 47%, 11%);
+  --color-muted: hsl(215, 16%, 47%);
+  --color-line: hsl(214, 32%, 91%);
+  
+  --color-accent: hsl(var(--h), var(--s), var(--l));
+  --color-accent-strong: hsl(var(--h), 75%, 35%);
+  --color-soft-accent: hsl(var(--h), 100%, 97%);
+  
+  /* Shadows & Glass */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --blur-md: blur(12px);
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+}
+
+[data-theme="dark"] {
+  --color-bg: hsl(222, 47%, 11%);
+  --color-panel: hsl(217, 33%, 17%);
+  --color-ink: hsl(210, 40%, 98%);
+  --color-muted: hsl(215, 25%, 72%);
+  --color-line: hsl(217, 33%, 25%);
+  
+  --color-accent: hsl(var(--h), 80%, 60%);
+  --color-accent-strong: hsl(var(--h), 90%, 70%);
+  --color-soft-accent: hsla(var(--h), 80%, 60%, 0.1);
+  
+  --glass-bg: hsla(217, 33%, 17%, 0.7);
+  --glass-border: hsla(217, 33%, 25%, 0.3);
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
 }

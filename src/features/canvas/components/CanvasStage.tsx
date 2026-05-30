@@ -7,13 +7,14 @@ import {
   useRef,
   useState
 } from "react";
-import { Image as KonvaImage, Layer, Line, Rect, Stage } from "react-konva";
+import { Image as KonvaImage, Layer, Line, Rect, Stage, Text as KonvaText } from "react-konva";
 import type { BoardPage } from "../../board/board.types";
-import type { CanvasToolState, CanvasViewport, Point, StrokeObject } from "../canvas.types";
+import type { CanvasObject, CanvasToolState, CanvasViewport, Point, StrokeObject } from "../canvas.types";
 import { panViewport, zoomViewport } from "../engine/coordinateTransform";
 import { isPointNearStroke } from "../engine/hitTest";
 import { appendStablePoints, getMousePoint, getPointerPoints } from "../engine/pointerInput";
 import { createPenStroke, normalizeStrokePoints, toLinePoints } from "../engine/strokeUtils";
+import { createTextObject } from "../objects/objectFactory";
 
 interface CanvasStageProps {
   page: BoardPage;
@@ -21,7 +22,7 @@ interface CanvasStageProps {
   viewport: CanvasViewport;
   onViewportChange: (viewport: CanvasViewport) => void;
   onStageSizeChange?: (size: typeof fallbackStageSize) => void;
-  onAddStroke: (stroke: StrokeObject) => void;
+  onAddObject: (object: CanvasObject) => void;
   onEraseStrokes: (strokeIds: string[]) => void;
 }
 
@@ -35,7 +36,7 @@ function CanvasDocumentLayer({ page }: { page: BoardPage }) {
   const document = page.document;
 
   useEffect(() => {
-    if (!document || document.kind !== "image") {
+    if (!document || (document.kind !== "image" && document.kind !== "pdfPage")) {
       setImageElement(null);
       return undefined;
     }
@@ -50,7 +51,7 @@ function CanvasDocumentLayer({ page }: { page: BoardPage }) {
     };
   }, [document]);
 
-  if (!document || document.kind !== "image" || !imageElement) {
+  if (!document || (document.kind !== "image" && document.kind !== "pdfPage") || !imageElement) {
     return null;
   }
 
@@ -76,7 +77,7 @@ export function CanvasStage({
   viewport,
   onViewportChange,
   onStageSizeChange,
-  onAddStroke,
+  onAddObject,
   onEraseStrokes
 }: CanvasStageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,9 +87,35 @@ export function CanvasStage({
   const lastPanPointRef = useRef<Point | undefined>(undefined);
   const draftPointsRef = useRef<Point[]>([]);
   const erasedStrokeIdsRef = useRef(new Set<string>());
+  interface EditingText {
+    x: number;
+    y: number;
+    canvasX: number;
+    canvasY: number;
+    value: string;
+  }
   const [stageSize, setStageSize] = useState(fallbackStageSize);
   const [draftPoints, setDraftPoints] = useState<Point[]>([]);
   const [hiddenStrokeIds, setHiddenStrokeIds] = useState<Set<string>>(() => new Set());
+  const [editingText, setEditingText] = useState<EditingText | null>(null);
+  const editingTextRef = useRef<EditingText | null>(null);
+
+  const finishTextEditing = useCallback(() => {
+    const current = editingTextRef.current;
+    if (current && current.value.trim()) {
+      onAddObject(
+        createTextObject({
+          pageId: page.id,
+          point: { x: current.canvasX, y: current.canvasY },
+          text: current.value.trim(),
+          color: toolState.textColor,
+          fontSize: toolState.textSize
+        })
+      );
+    }
+    editingTextRef.current = null;
+    setEditingText(null);
+  }, [onAddObject, page.id, toolState.textColor, toolState.textSize]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -98,9 +125,11 @@ export function CanvasStage({
     }
 
     const updateStageSize = () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
       const nextSize = {
-        width: Math.max(container.clientWidth, 320),
-        height: Math.max(container.clientHeight, fallbackStageSize.height)
+        width: width > 0 ? Math.round(width) : fallbackStageSize.width,
+        height: height > 0 ? Math.round(height) : fallbackStageSize.height
       };
 
       setStageSize(nextSize);
@@ -121,6 +150,8 @@ export function CanvasStage({
     lastPanPointRef.current = undefined;
     draftPointsRef.current = [];
     erasedStrokeIdsRef.current.clear();
+    editingTextRef.current = null;
+    setEditingText(null);
     setDraftPoints([]);
     setHiddenStrokeIds(new Set());
   }, [page.id, toolState.activeTool]);
@@ -193,16 +224,18 @@ export function CanvasStage({
     releasePointer(inputTarget, activePointerId);
     activePointerIdRef.current = undefined;
 
-    if (toolState.activeTool === "pen" && draftPointsRef.current.length > 0) {
+    if ((toolState.activeTool === "pen" || toolState.activeTool === "highlighter") && draftPointsRef.current.length > 0) {
       const points = normalizeStrokePoints(draftPointsRef.current);
       const stroke = createPenStroke({
         pageId: page.id,
         points,
-        color: toolState.penColor,
-        width: toolState.penWidth
+        color: toolState.activeTool === "highlighter" ? toolState.highlighterColor : toolState.penColor,
+        width: toolState.activeTool === "highlighter" ? toolState.highlighterWidth : toolState.penWidth,
+        tool: toolState.activeTool,
+        opacity: toolState.activeTool === "highlighter" ? 0.38 : 1
       });
 
-      onAddStroke(stroke);
+      onAddObject(stroke);
     }
 
     if (toolState.activeTool === "eraser" && erasedStrokeIdsRef.current.size > 0) {
@@ -216,7 +249,16 @@ export function CanvasStage({
     setHiddenStrokeIds(new Set());
 
     return undefined;
-  }, [onAddStroke, onEraseStrokes, page.id, toolState.activeTool, toolState.penColor, toolState.penWidth]);
+  }, [
+    onAddObject,
+    onEraseStrokes,
+    page.id,
+    toolState.activeTool,
+    toolState.highlighterColor,
+    toolState.highlighterWidth,
+    toolState.penColor,
+    toolState.penWidth
+  ]);
 
   useEffect(() => {
     const handleWindowPointerEnd = (event: PointerEvent) => {
@@ -279,7 +321,27 @@ export function CanvasStage({
       return;
     }
 
-    if (toolState.activeTool !== "pen" && toolState.activeTool !== "eraser") {
+    if (toolState.activeTool === "text") {
+      if (editingTextRef.current) {
+        finishTextEditing();
+        return;
+      }
+      const rect = event.currentTarget.getBoundingClientRect();
+      const clientX = event.nativeEvent.clientX - rect.left;
+      const clientY = event.nativeEvent.clientY - rect.top;
+      const newEditingText = {
+        x: clientX,
+        y: clientY,
+        canvasX: point.x,
+        canvasY: point.y,
+        value: ""
+      };
+      editingTextRef.current = newEditingText;
+      setEditingText(newEditingText);
+      return;
+    }
+
+    if (toolState.activeTool !== "pen" && toolState.activeTool !== "highlighter" && toolState.activeTool !== "eraser") {
       if (toolState.activeTool === "pan") {
         activePointerIdRef.current = event.pointerId;
         capturePointer(event.currentTarget, event.pointerId);
@@ -295,7 +357,7 @@ export function CanvasStage({
     activePointerIdRef.current = event.pointerId;
     capturePointer(event.currentTarget, event.pointerId);
 
-    if (toolState.activeTool === "pen") {
+    if (toolState.activeTool === "pen" || toolState.activeTool === "highlighter") {
       isDrawingRef.current = true;
       draftPointsRef.current = [point];
       setDraftPoints([point]);
@@ -340,7 +402,7 @@ export function CanvasStage({
       return;
     }
 
-    if (toolState.activeTool === "pen") {
+    if (toolState.activeTool === "pen" || toolState.activeTool === "highlighter") {
       const nextPoints = appendStablePoints(draftPointsRef.current, points);
       draftPointsRef.current = nextPoints;
       setDraftPoints(nextPoints);
@@ -378,7 +440,7 @@ export function CanvasStage({
   };
 
   const beginAtPoint = (point: Point) => {
-    if (toolState.activeTool === "pen") {
+    if (toolState.activeTool === "pen" || toolState.activeTool === "highlighter") {
       isDrawingRef.current = true;
       draftPointsRef.current = [point];
       setDraftPoints([point]);
@@ -402,7 +464,28 @@ export function CanvasStage({
       return;
     }
 
-    if (toolState.activeTool !== "pen" && toolState.activeTool !== "eraser") {
+    if (toolState.activeTool === "text") {
+      if (editingTextRef.current) {
+        finishTextEditing();
+        return;
+      }
+      const rect = event.currentTarget.getBoundingClientRect();
+      const clientX = event.nativeEvent.clientX - rect.left;
+      const clientY = event.nativeEvent.clientY - rect.top;
+      const point = getMouseEventPoint(event.nativeEvent, event.currentTarget);
+      const newEditingText = {
+        x: clientX,
+        y: clientY,
+        canvasX: point.x,
+        canvasY: point.y,
+        value: ""
+      };
+      editingTextRef.current = newEditingText;
+      setEditingText(newEditingText);
+      return;
+    }
+
+    if (toolState.activeTool !== "pen" && toolState.activeTool !== "highlighter" && toolState.activeTool !== "eraser") {
       if (toolState.activeTool === "pan") {
         lastPanPointRef.current = {
           x: event.nativeEvent.clientX,
@@ -443,7 +526,7 @@ export function CanvasStage({
 
     const point = getMouseEventPoint(event.nativeEvent, event.currentTarget);
 
-    if (toolState.activeTool === "pen") {
+    if (toolState.activeTool === "pen" || toolState.activeTool === "highlighter") {
       const nextPoints = appendStablePoints(draftPointsRef.current, [point]);
       draftPointsRef.current = nextPoints;
       setDraftPoints(nextPoints);
@@ -514,6 +597,29 @@ export function CanvasStage({
                   lineCap="round"
                   lineJoin="round"
                   tension={0.35}
+                  globalCompositeOperation={object.tool === "highlighter" ? "multiply" : "source-over"}
+                  listening={false}
+                />
+              );
+            })}
+
+            {page.objects.map((object) => {
+              if (object.kind !== "text") {
+                return null;
+              }
+
+              return (
+                <KonvaText
+                  key={object.id}
+                  x={object.x}
+                  y={object.y}
+                  text={object.text}
+                  width={object.width}
+                  height={object.height}
+                  fontFamily={object.fontFamily}
+                  fontSize={object.fontSize}
+                  fill={object.color}
+                  rotation={object.rotation}
                   listening={false}
                 />
               );
@@ -522,12 +628,13 @@ export function CanvasStage({
             {draftPoints.length > 0 && (
               <Line
                 points={toLinePoints(normalizeStrokePoints(draftPoints))}
-                stroke={toolState.penColor}
-                strokeWidth={toolState.penWidth}
-                opacity={1}
+                stroke={toolState.activeTool === "highlighter" ? toolState.highlighterColor : toolState.penColor}
+                strokeWidth={toolState.activeTool === "highlighter" ? toolState.highlighterWidth : toolState.penWidth}
+                opacity={toolState.activeTool === "highlighter" ? 0.38 : 1}
                 lineCap="round"
                 lineJoin="round"
                 tension={0.35}
+                globalCompositeOperation={toolState.activeTool === "highlighter" ? "multiply" : "source-over"}
                 listening={false}
               />
             )}
@@ -554,6 +661,38 @@ export function CanvasStage({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerEnd}
         />
+        {editingText && (
+          <textarea
+            className="canvas-text-editor"
+            style={{
+              left: `${editingText.x}px`,
+              top: `${editingText.y}px`,
+              color: toolState.textColor,
+              fontSize: `${toolState.textSize * viewport.zoom}px`,
+              lineHeight: 1.2
+            }}
+            autoFocus
+            value={editingText.value}
+            onChange={(e) => {
+              const val = e.target.value;
+              setEditingText(prev => {
+                const next = prev ? { ...prev, value: val } : null;
+                editingTextRef.current = next;
+                return next;
+              });
+            }}
+            onBlur={finishTextEditing}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                finishTextEditing();
+              } else if (e.key === "Escape") {
+                editingTextRef.current = null;
+                setEditingText(null);
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );

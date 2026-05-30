@@ -1,8 +1,8 @@
-﻿import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { initialCanvasToolState } from "../../canvas/canvas.store";
 import { CanvasStage } from "../../canvas/components/CanvasStage";
 import { CanvasToolbar } from "../../canvas/components/CanvasToolbar";
-import type { CanvasObject, StrokeObject, ToolType } from "../../canvas/canvas.types";
+import type { CanvasObject, ToolType } from "../../canvas/canvas.types";
 import {
   type CanvasHistoryAction,
   initialCanvasHistoryState,
@@ -18,8 +18,10 @@ import {
 } from "../../documents/lessoninkFileService";
 import type { LessonInkFileProjectMetadata } from "../../documents/lessoninkFile.types";
 import { deserializeLessonInkFile, serializeLessonInkFile } from "../../documents/lessoninkSerializer";
+import { exportBoardToPdf, getDefaultPdfExportName } from "../../documents/exporters/pdfExporter";
 import { exportPageToPng } from "../../documents/exporters/pngExporter";
 import { importImageAsPageDocument } from "../../documents/importers/imageImporter";
+import { importPdfAsBoardPages } from "../../documents/importers/pdfImporter";
 import { getBoardPageClassName, usePresenterStore } from "../../presenter/presenter.store";
 import { TimerPanel } from "../../timer/TimerPanel";
 import {
@@ -31,25 +33,48 @@ import {
   tickTimer
 } from "../../timer/timer.store";
 import { getAdjacentPageId } from "../board.store";
-import { useBoardState } from "../hooks/useBoardState";
+import { useBoard } from "../context/BoardContext";
+import { useSettings } from "../../settings/context/SettingsContext";
+import { clearAutosaveSnapshot, readAutosaveSnapshot, writeAutosaveSnapshot } from "../../../storage/autosave";
+import { readRecentFiles, writeRecentFiles } from "../../../storage/recentFiles";
+import { PageStrip } from "./PageStrip";
+import { RecoveryModal } from "./RecoveryModal";
+
+interface PendingRecoveryData {
+  board: any;
+  project: LessonInkFileProjectMetadata;
+}
 
 export function BoardShell() {
-  const { board, activePage, addPage, replaceBoard, setActivePage, setPageDocument, setPageObjects } = useBoardState();
+  const {
+    board,
+    activePage,
+    addPage,
+    replaceBoard,
+    replacePages,
+    setActivePage,
+    setPageDocument,
+    setPageObjects,
+    project,
+    setProject
+  } = useBoard();
+  const { settings } = useSettings();
   const { isPresenterMode, togglePresenterMode } = usePresenterStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [toolState, setToolState] = useState(initialCanvasToolState);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const hasCheckedAutosaveRef = useRef(false);
+  const [toolState, setToolState] = useState(() => ({
+    ...initialCanvasToolState,
+    activeTool: (settings.defaultTool === "select" ? "pan" : "pen") as ToolType
+  }));
   const [history, setHistory] = useState(initialCanvasHistoryState);
   const [viewport, setViewport] = useState(resetViewport);
   const [stageSize, setStageSize] = useState({ width: 960, height: 680 });
   const [timerState, setTimerState] = useState(initialTimerState);
+  const [isPageStripCollapsed, setIsPageStripCollapsed] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"Saved" | "Saving" | "Unsaved changes">("Saved");
-  const [project, setProject] = useState<LessonInkFileProjectMetadata>(() => ({
-    id: board.id,
-    title: board.title,
-    createdAt: board.createdAt,
-    updatedAt: board.updatedAt
-  }));
+  const [pendingRecovery, setPendingRecovery] = useState<PendingRecoveryData | null>(null);
   const [fileMessage, setFileMessage] = useState<string | undefined>(undefined);
   const [fileError, setFileError] = useState<string | undefined>(undefined);
   const activePageIndex = Math.max(
@@ -59,11 +84,67 @@ export function BoardShell() {
   const previousPageId = getAdjacentPageId(board, "previous");
   const nextPageId = getAdjacentPageId(board, "next");
 
+  // Sync initial toolState when defaultTool setting changes
+  useEffect(() => {
+    setToolState((current) => ({
+      ...current,
+      activeTool: (settings.defaultTool === "select" ? "pan" : "pen") as ToolType
+    }));
+  }, [settings.defaultTool]);
+
   useEffect(() => {
     document.body.classList.toggle("presenter-mode-active", isPresenterMode);
 
     return () => document.body.classList.remove("presenter-mode-active");
   }, [isPresenterMode]);
+
+  useEffect(() => {
+    if (hasCheckedAutosaveRef.current) {
+      return;
+    }
+
+    hasCheckedAutosaveRef.current = true;
+    const snapshot = readAutosaveSnapshot();
+
+    if (!snapshot) {
+      return;
+    }
+
+    setPendingRecovery(snapshot);
+  }, []);
+
+  useEffect(() => {
+    const pendingImport = window.sessionStorage.getItem("lessonink.pendingImport");
+
+    if (!pendingImport) {
+      return;
+    }
+
+    window.sessionStorage.removeItem("lessonink.pendingImport");
+    window.setTimeout(() => {
+      if (pendingImport === "pdf") {
+        pdfInputRef.current?.click();
+      }
+
+      if (pendingImport === "image") {
+        imageInputRef.current?.click();
+      }
+    }, 0);
+  }, []);
+
+  useEffect(() => {
+    if (!settings.autosaveEnabled || saveStatus !== "Unsaved changes") {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setSaveStatus("Saving");
+      writeAutosaveSnapshot(board, project);
+      setSaveStatus("Saved");
+    }, settings.autosaveIntervalSeconds * 1000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [board, project, saveStatus, settings.autosaveEnabled, settings.autosaveIntervalSeconds]);
 
   useEffect(() => {
     if (!timerState.isRunning) {
@@ -77,6 +158,39 @@ export function BoardShell() {
     return () => window.clearInterval(intervalId);
   }, [timerState.isRunning]);
 
+  useEffect(() => {
+    if (!fileMessage || fileError) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setFileMessage(undefined);
+    }, 3200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fileError, fileMessage]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ignore keypresses inside input/textarea/select
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      if (activeTag === "input" || activeTag === "textarea" || activeTag === "select") {
+        return;
+      }
+
+      if (event.key === "PageUp" || (event.key === "ArrowLeft" && event.altKey)) {
+        event.preventDefault();
+        handleGoToPreviousPage();
+      } else if (event.key === "PageDown" || (event.key === "ArrowRight" && event.altKey)) {
+        event.preventDefault();
+        handleGoToNextPage();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previousPageId, nextPageId, activePageIndex]);
+
   const commitObjects = (
     pageId: string,
     before: CanvasObject[],
@@ -88,14 +202,14 @@ export function BoardShell() {
     setSaveStatus("Unsaved changes");
   };
 
-  const handleAddStroke = (stroke: StrokeObject) => {
+  const handleAddObject = (object: CanvasObject) => {
     const before = activePage.objects;
-    const after = [...before, stroke];
+    const after = [...before, object];
 
     commitObjects(activePage.id, before, after, {
-      type: "addStroke",
+      type: "addObject",
       pageId: activePage.id,
-      strokeId: stroke.id
+      objectId: object.id
     });
   };
 
@@ -164,6 +278,7 @@ export function BoardShell() {
     const contents = serializeLessonInkFile(board, project);
 
     downloadLessonInkFile(contents, getLessonInkDownloadName(project));
+    clearAutosaveSnapshot();
     setSaveStatus("Saved");
     setFileError(undefined);
     setFileMessage("Project download started.");
@@ -175,6 +290,10 @@ export function BoardShell() {
 
   const handleImportImage = () => {
     imageInputRef.current?.click();
+  };
+
+  const handleImportPdf = () => {
+    pdfInputRef.current?.click();
   };
 
   const handleExportPng = async () => {
@@ -190,6 +309,22 @@ export function BoardShell() {
     } catch (error) {
       setFileMessage(undefined);
       setFileError(error instanceof Error ? error.message : "Could not export the current page as PNG.");
+    }
+  };
+
+  const handleExportPdf = async () => {
+    try {
+      await exportBoardToPdf({
+        board,
+        width: stageSize.width,
+        height: stageSize.height,
+        fileName: getDefaultPdfExportName()
+      });
+      setFileError(undefined);
+      setFileMessage("PDF export started.");
+    } catch (error) {
+      setFileMessage(undefined);
+      setFileError(error instanceof Error ? error.message : "Could not export the lesson as PDF.");
     }
   };
 
@@ -239,6 +374,8 @@ export function BoardShell() {
     if (
       !isPresenterMode &&
       toolState.activeTool !== "pen" &&
+      toolState.activeTool !== "highlighter" &&
+      toolState.activeTool !== "text" &&
       toolState.activeTool !== "eraser" &&
       toolState.activeTool !== "pan"
     ) {
@@ -262,8 +399,17 @@ export function BoardShell() {
 
       replaceBoard(loadedProject.board);
       setProject(loadedProject.project);
+      writeRecentFiles([
+        {
+          path: file.name,
+          title: loadedProject.project.title || file.name,
+          openedAt: new Date().toISOString()
+        },
+        ...readRecentFiles().filter((recentFile) => recentFile.path !== file.name)
+      ].slice(0, 6));
       setHistory(initialCanvasHistoryState);
       setViewport(resetViewport());
+      clearAutosaveSnapshot();
       setSaveStatus("Saved");
       setFileError(undefined);
       setFileMessage(`Opened ${file.name}.`);
@@ -299,6 +445,34 @@ export function BoardShell() {
     }
   };
 
+  const handlePdfFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const [file] = event.target.files ?? [];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const pages = await importPdfAsBoardPages({ file });
+      const hasExistingWork = board.pages.some((page) => page.objects.length > 0 || page.document);
+
+      if (hasExistingWork && !window.confirm("Importing this PDF will replace the current board pages. Continue?")) {
+        return;
+      }
+
+      replacePages(pages);
+      setHistory(initialCanvasHistoryState);
+      setViewport(resetViewport());
+      setSaveStatus("Unsaved changes");
+      setFileError(undefined);
+      setFileMessage(`Imported ${pages.length} PDF page${pages.length === 1 ? "" : "s"} from ${file.name}.`);
+    } catch (error) {
+      setFileMessage(undefined);
+      setFileError(error instanceof Error ? error.message : "Could not import the selected PDF.");
+    }
+  };
+
   return (
     <section className={getBoardPageClassName(isPresenterMode)}>
       <CanvasToolbar
@@ -309,28 +483,42 @@ export function BoardShell() {
         canRedo={history.redoStack.length > 0}
         hasObjects={activePage.objects.length > 0}
         onToolChange={(activeTool: ToolType) => setToolState((current) => ({ ...current, activeTool }))}
-        onPenColorChange={(penColor) => setToolState((current) => ({ ...current, penColor }))}
-        onPenWidthChange={(penWidth) => setToolState((current) => ({ ...current, penWidth }))}
+        onPenColorChange={(color) =>
+          setToolState((current) =>
+            current.activeTool === "highlighter"
+              ? { ...current, highlighterColor: color }
+              : current.activeTool === "text"
+                ? { ...current, textColor: color }
+                : { ...current, penColor: color }
+          )
+        }
+        onPenWidthChange={(value) =>
+          setToolState((current) =>
+            current.activeTool === "highlighter"
+              ? { ...current, highlighterWidth: value }
+              : current.activeTool === "text"
+                ? { ...current, textSize: value }
+                : { ...current, penWidth: value }
+          )
+        }
         onUndo={handleUndo}
         onRedo={handleRedo}
         onClear={handleClearCanvas}
         onSaveProject={handleSaveProject}
         onOpenProject={handleOpenProject}
         onImportImage={handleImportImage}
+        onImportPdf={handleImportPdf}
         onExportPng={handleExportPng}
+        onExportPdf={handleExportPdf}
         isPresenterMode={isPresenterMode}
         pagePositionLabel={`Page ${activePageIndex + 1} / ${board.pages.length}`}
-        zoomLabel={`${Math.round(viewport.zoom * 100)}%`}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onResetViewport={handleResetViewport}
         canGoPreviousPage={Boolean(previousPageId)}
         canGoNextPage={Boolean(nextPageId)}
         onPreviousPage={handleGoToPreviousPage}
         onNextPage={handleGoToNextPage}
-        onAddPage={handleAddPage}
         onTogglePresenterMode={handleTogglePresenterMode}
       />
+      
       <input
         ref={fileInputRef}
         accept=".mushroomlearning,.lessonink,application/json,application/vnd.mushroomlearning+json,application/vnd.lessonink+json"
@@ -345,6 +533,14 @@ export function BoardShell() {
         type="file"
         onChange={handleImageFileSelected}
       />
+      <input
+        ref={pdfInputRef}
+        accept="application/pdf,.pdf"
+        className="visually-hidden"
+        type="file"
+        onChange={handlePdfFileSelected}
+      />
+      
       {(fileMessage || fileError) && (
         <div
           className={fileError ? "board-file-message error" : "board-file-message"}
@@ -354,7 +550,25 @@ export function BoardShell() {
         </div>
       )}
 
-      <div className="workspace">
+      <div className={isPageStripCollapsed && !isPresenterMode ? "workspace pages-collapsed" : "workspace"}>
+        {!isPresenterMode && (
+          <PageStrip
+            board={board}
+            activePageIndex={activePageIndex}
+            viewportZoom={viewport.zoom}
+            isCollapsed={isPageStripCollapsed}
+            onToggleCollapse={setIsPageStripCollapsed}
+            onAddPage={handleAddPage}
+            onSelectPage={(pageId) => {
+              setActivePage(pageId);
+              setViewport(resetViewport());
+            }}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onResetZoom={handleResetViewport}
+          />
+        )}
+        
         <div className={isPresenterMode ? "timer-floating-widget presenter-timer-widget" : "timer-floating-widget"}>
           <TimerPanel
             state={timerState}
@@ -365,16 +579,37 @@ export function BoardShell() {
             onReset={() => setTimerState(resetTimer)}
           />
         </div>
+
         <CanvasStage
           page={activePage}
           toolState={toolState}
           viewport={viewport}
           onViewportChange={setViewport}
           onStageSizeChange={setStageSize}
-          onAddStroke={handleAddStroke}
+          onAddObject={handleAddObject}
           onEraseStrokes={handleEraseStrokes}
         />
       </div>
+
+      {pendingRecovery && (
+        <RecoveryModal
+          projectTitle={pendingRecovery.project.title}
+          onRecover={() => {
+            replaceBoard(pendingRecovery.board);
+            setProject(pendingRecovery.project);
+            setHistory(initialCanvasHistoryState);
+            setViewport(resetViewport());
+            setSaveStatus("Unsaved changes");
+            setFileMessage("Recovered unsaved lesson.");
+            setFileError(undefined);
+            setPendingRecovery(null);
+          }}
+          onDiscard={() => {
+            clearAutosaveSnapshot();
+            setPendingRecovery(null);
+          }}
+        />
+      )}
     </section>
   );
 }

@@ -10,6 +10,10 @@ export const initialCanvasToolState: CanvasToolState = {
   activeTool: "pen",
   penColor: "#111827",
   penWidth: 4,
+  highlighterColor: "#facc15",
+  highlighterWidth: 18,
+  textColor: "#111827",
+  textSize: 24,
   eraserRadius: 14
 };
 

@@ -96,3 +96,18 @@ export function setPageDocument(board: Board, pageId: string, document: BoardPag
     updatedAt: now()
   };
 }
+
+export function replaceBoardPages(board: Board, pages: BoardPage[]): Board {
+  const indexedPages = pages.map((page, index) => ({
+    ...page,
+    index,
+    title: page.title || `Page ${index + 1}`
+  }));
+
+  return {
+    ...board,
+    pages: indexedPages,
+    activePageId: indexedPages[0]?.id ?? board.activePageId,
+    updatedAt: now()
+  };
+}

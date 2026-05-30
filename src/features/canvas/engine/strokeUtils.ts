@@ -5,9 +5,11 @@ interface CreateStrokeInput {
   points: Point[];
   color: string;
   width: number;
+  tool?: StrokeObject["tool"];
+  opacity?: number;
 }
 
-export function createPenStroke({ pageId, points, color, width }: CreateStrokeInput): StrokeObject {
+export function createPenStroke({ pageId, points, color, width, tool = "pen", opacity = 1 }: CreateStrokeInput): StrokeObject {
   const timestamp = new Date().toISOString();
 
   return {
@@ -15,10 +17,10 @@ export function createPenStroke({ pageId, points, color, width }: CreateStrokeIn
     pageId,
     kind: "stroke",
     type: "stroke",
-    tool: "pen",
+    tool,
     points,
     color,
-    opacity: 1,
+    opacity,
     width,
     x: 0,
     y: 0,

@@ -68,14 +68,26 @@ npm test
 ```
 
 Kiểm thử đơn vị hiện tại tập trung vào logic canvas cốt lõi: đầu vào con trỏ, tiện ích nét vẽ,
-kiểm tra va chạm cho tẩy, lịch sử hoàn tác/làm lại và trạng thái bảng/trang. Repo chưa thêm kiểm thử e2e.
+kiểm tra va chạm cho tẩy, lịch sử hoàn tác/làm lại, trạng thái bảng/trang, serializer/validator,
+PNG/PDF export helpers, presenter store và timer store. Repo chưa thêm kiểm thử e2e.
 
 Lưu và mở file bài học cục bộ:
 
 - Vào `Board`.
-- Bấm `Save Project` để tải file `.mushroomlearning` về máy.
-- Bấm `Open Project` để chọn file `.mushroomlearning` đã lưu và khôi phục trang/nét vẽ.
+- Bấm `Save` để tải file `.mushroomlearning` về máy.
+- Bấm `Open` để chọn file `.mushroomlearning` đã lưu và khôi phục trang/nền/nét vẽ/text.
 - Phiên bản hiện tại dùng cơ chế dự phòng tải xuống/tải lên file trên trình duyệt; chưa yêu cầu API hệ thống file của Tauri.
+
+Luồng dạy học v0.2:
+
+- Bấm `PDF` để import một file PDF. Mỗi trang PDF được render thành một page background riêng.
+- Bấm `Image` để import PNG/JPG làm background cho trang hiện tại.
+- Dùng `Pen`, `Mark`, `Text`, `Eraser` và `Hand` để viết, tô sáng, thêm chữ, xóa nét hoặc di chuyển canvas.
+- Dùng danh sách thumbnail bên trái để chuyển nhanh giữa các trang.
+- Dùng timer trong góc phải cho bài tập trên lớp.
+- Bấm `PNG` để export trang hiện tại.
+- Bấm `Export PDF` để export toàn bộ board thành một file `mushroomlearning-lesson-YYYY-MM-DD.pdf`.
+- Ứng dụng tự lưu snapshot cục bộ sau thay đổi quan trọng và hỏi khôi phục nếu phát hiện bài chưa lưu ở lần mở sau.
 
 Chế độ trình bày v0.5:
 
@@ -89,6 +101,14 @@ Chạy Tauri desktop shell sau khi đã cài Rust và các yêu cầu của Taur
 ```bash
 npm run tauri dev
 ```
+
+Build installer/app desktop bằng Tauri sau khi máy đã có Rust/Cargo và toolchain Tauri cho Windows:
+
+```bash
+npm run tauri build
+```
+
+Nếu lệnh báo `cargo metadata ... program not found`, cần cài Rust từ https://rustup.rs/ và mở terminal mới để `cargo` có trong PATH.
 
 ## Cấu trúc repository hiện tại
 

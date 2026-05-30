@@ -1,491 +1,277 @@
-﻿# MushroomLearning Desktop - Tổng quan sản phẩm
+﻿# Report Overview - MushroomLearning Desktop
 
-## 1. Tên dự án
+**Ngày cập nhật:** 28/05/2026  
+**Phiên bản dự án:** v0.1.0  
+**Repository:** `mushroomlearning-desktop`  
+**Trạng thái tổng quan:** Đã có nền tảng ứng dụng desktop/web cục bộ và prototype bảng trắng tương tác; đang trong giai đoạn hoàn thiện MVP.
 
-**Tên sản phẩm:** MushroomLearning  
-**Tên repository:** `mushroomlearning-desktop`  
-**Tài liệu:** `overview.md`  
-**Phiên bản:** v0.1  
-**Định hướng sản phẩm:** Bảng trắng desktop ưu tiên ngoại tuyến cho dạy học trực tuyến
+## 1. Executive Summary
 
-## 2. Mô tả một dòng
+MushroomLearning Desktop là ứng dụng bảng trắng desktop ưu tiên ngoại tuyến dành cho giáo viên, gia sư và giảng viên dạy trực tuyến qua Zoom, Google Meet, Microsoft Teams hoặc các công cụ họp tương tự.
 
-**MushroomLearning Desktop** là ứng dụng bảng trắng desktop ưu tiên ngoại tuyến, dành cho giáo viên và gia sư dạy lớp trực tuyến bằng cách chia sẻ cửa sổ ứng dụng qua Zoom, Google Meet, Microsoft Teams hoặc các công cụ họp tương tự.
+Mục tiêu MVP là kiểm chứng việc giáo viên có thể dùng MushroomLearning để dạy một buổi học thật bằng cách chia sẻ cửa sổ ứng dụng, viết/chú thích trên bảng, quản lý nhiều trang, lưu bài học cục bộ và xuất nội dung sau buổi học mà không cần tài khoản, cloud hay tích hợp nền tảng họp.
 
-## 3. Tóm tắt sản phẩm
+Dự án hiện đã có kiến trúc Tauri + React + TypeScript, canvas bằng Konva, các module domain chính, bộ test unit cho logic cốt lõi và một prototype bảng trắng có thể thao tác được. Các tính năng trọng tâm đã có gồm bút, tẩy, pan/zoom, nhiều trang, undo/redo, lưu/mở file `.mushroomlearning`, import ảnh, export PNG, presenter mode và timer.
 
-MushroomLearning Desktop được thiết kế để giúp giáo viên vận hành buổi học trực tuyến mượt mà hơn mà không cần triển khai đám mây, tài khoản học sinh hay tích hợp với nền tảng họp trong giai đoạn MVP.
+## 2. Định Vị Sản Phẩm
 
-Giáo viên mở ứng dụng, tạo bảng mới hoặc nhập tài liệu dạy học, viết và giảng trực tiếp trên màn hình, sau đó chia sẻ cửa sổ ứng dụng qua Zoom hoặc Google Meet. Sau buổi học, giáo viên có thể lưu file dự án cục bộ hoặc xuất bảng thành PDF/PNG để gửi cho học sinh.
+MushroomLearning được định vị là bảng dạy học desktop gọn nhẹ cho lớp học trực tuyến trực tiếp:
 
-Sản phẩm không nhằm cạnh tranh với các công cụ cộng tác rộng như Miro hay các nền tảng lớp học đầy đủ. MushroomLearning tập trung vào một ca sử dụng rõ ràng: **một bảng dạy học đơn giản, nhanh và ưu tiên giáo viên cho lớp học trực tuyến trực tiếp**.
+- Giáo viên mở ứng dụng.
+- Tạo bảng mới hoặc mở file bài học cục bộ.
+- Nhập tài liệu hoặc bắt đầu từ bảng trắng.
+- Viết, vẽ, tô chú thích trong lúc dạy.
+- Chia sẻ cửa sổ qua Zoom/Google Meet.
+- Lưu hoặc xuất bài học sau buổi học.
 
-## 4. Tầm nhìn sản phẩm
+Sản phẩm không định hướng trở thành LMS, Miro clone, nền tảng cộng tác cloud, plugin Zoom/Google Meet hay công cụ AI trong giai đoạn MVP.
 
-MushroomLearning hướng tới việc trở thành bảng dạy học desktop dễ dùng nhất cho giáo viên trực tuyến cần giảng bài bằng hình ảnh trong lớp học trực tiếp.
+## 3. Người Dùng Mục Tiêu
 
-Về dài hạn, sản phẩm sẽ cung cấp một không gian dạy học gọn nhẹ, nơi giáo viên có thể chuẩn bị, trình bày, chú thích và lưu nội dung bài học mà không phải chuyển qua lại giữa nhiều công cụ.
+Người dùng chính:
 
-## 5. Người dùng mục tiêu
+- Gia sư trực tuyến dạy 1-1 hoặc nhóm nhỏ.
+- Giáo viên luyện thi cần chú thích bài tập, đề thi, PDF.
+- Giáo viên tự do hoặc trung tâm nhỏ cần công cụ dạy học đơn giản, không yêu cầu thiết lập phức tạp.
 
-### Người dùng chính
+Người dùng phụ:
 
-1. **Gia sư trực tuyến**
-   - Dạy 1-1 hoặc nhóm nhỏ qua Zoom/Google Meet.
-   - Cần viết, giải thích và giải bài tập trực tiếp.
-   - Thường dùng PDF, hình ảnh, ảnh chụp màn hình và ghi chú viết tay.
+- Giáo viên dạy hybrid.
+- Giảng viên đào tạo nội bộ.
+- Học sinh, sinh viên hoặc trợ giảng cần trình bày lời giải.
 
-2. **Giáo viên luyện thi**
-   - Dạy các môn như Toán, Vật lý, Hóa học, Tiếng Anh, IELTS, SAT hoặc luyện thi đại học.
-   - Cần chú thích trực tiếp lên bài tập và đề thi cũ.
-   - Cần lưu lại ghi chú sau buổi học.
+## 4. Vấn Đề Cần Giải Quyết
 
-3. **Giáo viên tự do và trung tâm học tập nhỏ**
-   - Cần công cụ đơn giản, không đòi hỏi thiết lập tốn kém.
-   - Ưu tiên công cụ dùng được ngay, không phải quản lý tài khoản học sinh.
+Giáo viên dạy online thường phải chuyển qua lại giữa nhiều công cụ: Zoom/Meet, PowerPoint, PDF viewer, trình duyệt và bảng trắng. Điều này gây gián đoạn trong buổi học trực tiếp.
 
-### Người dùng phụ
+Các pain point chính:
 
-1. Giáo viên trường học dạy hybrid hoặc dạy trực tuyến.
-2. Giảng viên đào tạo nội bộ trong doanh nghiệp.
-3. Học sinh, sinh viên hoặc trợ giảng cần trình bày cách giải bài.
-
-## 6. Vấn đề cốt lõi
-
-Nhiều giáo viên dạy trực tuyến hiện phải dùng đồng thời Zoom, Google Meet, PowerPoint, trình xem PDF, tab trình duyệt và công cụ bảng trắng. Việc này tạo ra nhiều ma sát trong lúc đang dạy trực tiếp.
-
-Các vấn đề phổ biến:
-
-- Chuyển qua lại giữa PDF, slide, trình duyệt và bảng trắng bị chậm.
-- Bảng trắng tích hợp trong nền tảng họp không tối ưu cho buổi dạy dài.
-- Công cụ đa mục đích thường quá phức tạp với giáo viên.
 - Viết trực tiếp lên tài liệu dạy học chưa đủ mượt.
-- Giáo viên cần lưu và gửi lại ghi chú bài học sau buổi học.
-- Một số giáo viên không muốn dùng công cụ yêu cầu học sinh đăng nhập, lưu đám mây hoặc thiết lập phức tạp.
-
-## 7. Định vị sản phẩm
+- Chuyển qua lại giữa PDF, slide và bảng trắng mất thời gian.
+- Bảng trắng tích hợp trong công cụ họp không tối ưu cho lớp học dài.
+- Công cụ cộng tác đa năng thường quá phức tạp so với nhu cầu dạy trực tiếp.
+- Giáo viên cần lưu và gửi lại ghi chú sau buổi học.
+- Một nhóm giáo viên không muốn dùng công cụ bắt học sinh đăng nhập hoặc lưu dữ liệu lên cloud.
+
+## 5. Phạm Vi MVP
+
+MVP cần chứng minh một giả thuyết chính:
+
+> Giáo viên có thể dạy một buổi học trực tuyến thật bằng MushroomLearning qua chia sẻ màn hình mà không cần dùng thêm công cụ bảng trắng khác.
+
+Trong phạm vi MVP:
+
+- Bảng trắng nhiều trang.
+- Bút, tẩy, tô sáng, văn bản và hình cơ bản.
+- Nhập PDF và hình ảnh.
+- Di chuyển bảng, phóng to/thu nhỏ.
+- Chế độ trình bày để chia sẻ màn hình sạch hơn.
+- Đồng hồ cho bài tập.
+- Lưu/tải cục bộ bằng file `.mushroomlearning`.
+- Tự động lưu cục bộ.
+- File gần đây.
+- Xuất PDF/PNG.
+- Undo/redo.
+
+Ngoài phạm vi MVP:
+
+- Đăng nhập, tài khoản học sinh, phân quyền.
+- Cloud sync hoặc cloud storage.
+- Cộng tác thời gian thực.
+- Link cho học sinh tham gia.
+- Tích hợp Zoom SDK hoặc Google Meet add-on.
+- Thanh toán, license, marketplace.
+- Tính năng AI.
+
+## 6. Hiện Trạng Dự Án Đã Có
+
+### 6.1 Nền tảng kỹ thuật
+
+Đã có:
+
+- Project React + TypeScript + Vite.
+- Tauri desktop shell cơ bản trong `src-tauri`.
+- Konva/react-konva cho canvas.
+- Cấu trúc source theo feature: `board`, `canvas`, `documents`, `presenter`, `timer`, `settings`, `storage`.
+- Scripts phát triển: `npm run dev`, `npm run build`, `npm test`, `npm run tauri dev`.
+- Bộ tài liệu sản phẩm/kỹ thuật trong `docs/`.
+
+### 6.2 Tài liệu sản phẩm và kỹ thuật
+
+Đã có các tài liệu chính:
+
+- `docs/product/mvp-scope.md`: phạm vi MVP.
+- `docs/product/user-flow.md`: luồng trước, trong và sau buổi học.
+- `docs/product/roadmap.md`: roadmap theo giai đoạn.
+- `docs/product/feature-list.md`: danh sách tính năng P0/P1/trì hoãn.
+- `docs/technical/architecture.md`: kiến trúc ứng dụng.
+- `docs/technical/canvas-engine.md`: định hướng engine canvas.
+- `docs/technical/file-format.md`: định dạng file `.mushroomlearning`.
+- `docs/technical/local-storage.md`: nguyên tắc lưu trữ cục bộ.
+- `docs/decisions/adr-001-offline-first.md`: quyết định offline-first.
+
+### 6.3 Tính năng sản phẩm đã triển khai ở prototype
+
+Đã có:
+
+- Màn hình Home, Board, Settings.
+- Canvas trắng bằng Konva.
+- Công cụ bút vẽ nét tự do.
+- Tùy chỉnh màu bút và độ dày bút.
+- Công cụ tẩy theo nét.
+- Pan canvas.
+- Zoom in, zoom out, reset viewport.
+- Undo/redo cho thao tác canvas.
+- Clear canvas.
+- Bảng nhiều trang: thêm trang, chuyển trang trước/sau.
+- Lưu project thành file `.mushroomlearning` dạng JSON.
+- Mở lại file `.mushroomlearning` từ máy.
+- Import ảnh vào trang hiện tại.
+- Export trang hiện tại thành PNG.
+- Presenter mode: ẩn bớt UI, giữ thanh công cụ rút gọn để chia sẻ màn hình.
+- Timer với start/pause/reset và chỉnh thời lượng.
+- Save status cơ bản: saved/saving/unsaved changes.
 
-MushroomLearning được định vị là:
-
-> Một bảng dạy học desktop gọn nhẹ cho lớp học trực tuyến trực tiếp: mở ứng dụng, viết mượt, nhập tài liệu, chia sẻ cửa sổ và xuất bài học sau buổi học.
+### 6.4 Định dạng file
+
+Đã có serializer/validator cho file `.mushroomlearning`.
 
-### MushroomLearning là gì
+File hiện lưu các dữ liệu domain chính:
 
-- Ứng dụng desktop chạy cục bộ.
-- Bảng dạy học ưu tiên chia sẻ màn hình.
-- Công cụ để viết, giảng, chú thích và trình bày.
-- Không gian làm việc đơn giản cho giáo viên.
-- Sản phẩm ưu tiên ngoại tuyến, tránh chi phí đám mây trong giai đoạn MVP.
+- Metadata project.
+- Board.
+- Danh sách page.
+- Active page.
+- Background trang.
+- Objects trên canvas.
+- Stroke data gồm điểm vẽ, màu, độ dày, opacity, tool và metadata.
+
+Hiện tại lưu/mở đang dùng cơ chế browser download/upload file. Đây là hướng phù hợp cho prototype web; khi đóng gói desktop cần nối sâu hơn với file system API của Tauri.
 
-### MushroomLearning không phải là gì
-
-- Không phải LMS đầy đủ.
-- Không thay thế Miro.
-- Không phải plugin Zoom/Google Meet trong giai đoạn MVP.
-- Không phải nền tảng cộng tác đám mây khi ra mắt.
-- Không phải hệ thống quản lý học sinh.
-- Không phải công cụ tạo giáo án bằng AI ở phiên bản đầu.
-
-## 8. Chiến lược MVP
-
-MVP cần chứng minh một điều:
-
-> Giáo viên có thể dùng MushroomLearning để dạy một buổi học trực tuyến thật qua chia sẻ màn hình mà không cần công cụ bảng trắng khác hay không?
-
-Phiên bản đầu nên tập trung vào độ ổn định, nét viết mượt, nhập PDF, quản lý trang đơn giản và trải nghiệm chia sẻ màn hình sạch.
-
-MVP nên tránh phát triển dịch vụ máy chủ, lưu trữ đám mây, xác thực, thanh toán, cộng tác thời gian thực và tích hợp với nền tảng họp.
-
-## 9. Tính năng MVP
-
-### Tính năng bắt buộc
-
-| Tính năng | Mô tả | Ưu tiên |
-|---|---|---|
-| Canvas bảng trắng | Bảng trống để viết và vẽ | P0 |
-| Công cụ bút | Viết tay mượt, có tùy chọn màu và độ dày | P0 |
-| Tẩy | Xóa nét vẽ hoặc đối tượng | P0 |
-| Bút tô sáng | Tô sáng văn bản hoặc vùng trên bảng/PDF | P0 |
-| Công cụ văn bản | Thêm ghi chú dạng chữ gõ | P0 |
-| Hình cơ bản | Đường thẳng, mũi tên, hình chữ nhật, hình tròn | P1 |
-| Bảng nhiều trang | Thêm, xóa, sắp xếp lại và chuyển trang | P0 |
-| Nhập PDF | Nhập các trang PDF vào bảng | P0 |
-| Nhập hình ảnh | Chèn ảnh chụp màn hình hoặc ảnh bài tập | P1 |
-| Di chuyển bảng và phóng to/thu nhỏ | Di chuyển quanh bảng và phóng to/thu nhỏ | P0 |
-| Chế độ trình bày | Ẩn UI không cần thiết để chia sẻ màn hình sạch | P0 |
-| Đồng hồ | Đếm ngược/đếm lên cho bài tập | P1 |
-| Lưu/tải cục bộ | Lưu file dự án trên máy | P0 |
-| Xuất file | Xuất bảng/trang thành PDF hoặc PNG | P0 |
-| Hoàn tác/làm lại | Khôi phục khi thao tác sai trong lúc dạy | P0 |
-| Tự động lưu | Giảm rủi ro mất dữ liệu trong buổi học | P1 |
-
-### Tính năng nên có
-
-| Tính năng | Mô tả |
-|---|---|
-| Mẫu bảng | Bảng trống, lưới, chấm, giấy kẻ dòng, lưới toán học |
-| File gần đây | Mở nhanh các bài học trước |
-| Phím tắt | Chuyển nhanh giữa bút, tẩy, con trỏ và điều hướng trang |
-| Con trỏ laser | Chỉ vào nội dung khi trình bày |
-| Thumbnail trang | Chuyển nhanh giữa các trang |
-| Chọn/di chuyển đối tượng | Di chuyển hình ảnh, văn bản và hình vẽ |
-
-### Không nằm trong MVP
-
-| Tính năng | Lý do |
-|---|---|
-| Đăng nhập người dùng | Cần dịch vụ máy chủ và tăng độ phức tạp |
-| Lưu trữ đám mây | Tăng chi phí và trách nhiệm bảo mật |
-| Đường dẫn cho học sinh tham gia | Cần hạ tầng thời gian thực |
-| Cộng tác thời gian thực | Phức tạp về kỹ thuật và chưa cần cho luồng chia sẻ màn hình ban đầu |
-| Tích hợp Zoom SDK | Chưa cần vì giáo viên đã có thể chia sẻ cửa sổ ứng dụng |
-| Add-on Google Meet | Tạo phụ thuộc nền tảng và quy trình xét duyệt |
-| Tính năng AI | Chưa phải điểm đau cốt lõi của MVP |
-| Marketplace | Quá sớm trước khi chứng minh được nhu cầu sử dụng |
-| Hệ thống thanh toán | Nên làm sau khi xác thực được mức độ sử dụng |
-
-## 10. Luồng người dùng
-
-### Trước buổi học
-
-1. Giáo viên mở MushroomLearning Desktop.
-2. Giáo viên tạo bảng mới hoặc mở dự án cục bộ đã có.
-3. Giáo viên nhập PDF, hình ảnh hoặc bắt đầu từ bảng trống.
-4. Giáo viên có thể chuẩn bị trước các trang cho buổi học.
-
-### Trong buổi học
-
-1. Giáo viên tham gia Zoom/Google Meet.
-2. Giáo viên chia sẻ cửa sổ ứng dụng MushroomLearning.
-3. Giáo viên viết, tô sáng, vẽ và giảng trực tiếp.
-4. Giáo viên chuyển trang trong lúc dạy.
-5. Giáo viên dùng đồng hồ khi học sinh làm bài tập.
-6. Giáo viên dùng chế độ trình bày để giữ màn hình chia sẻ gọn gàng.
-
-### Sau buổi học
-
-1. Giáo viên lưu file dự án cục bộ.
-2. Giáo viên xuất bảng thành PDF/PNG.
-3. Giáo viên gửi ghi chú đã xuất cho học sinh qua Zalo, email, Google Drive, LMS hoặc kênh khác.
-
-## 11. Kiến trúc sản phẩm ưu tiên ngoại tuyến
-
-MushroomLearning nên được thiết kế như một ứng dụng desktop ưu tiên cục bộ.
-
-```text
-MushroomLearning Desktop
-|
-+-- Lớp canvas
-|   +-- Nét bút
-|   +-- Nét tô sáng
-|   +-- Hình vẽ
-|   +-- Đối tượng văn bản
-|   +-- Hình ảnh
-|   +-- Nền trang PDF
-|
-+-- Lớp tài liệu
-|   +-- Trang
-|   +-- Đối tượng
-|   +-- Lịch sử thao tác
-|   +-- Siêu dữ liệu dự án
-|
-+-- Lớp lưu trữ cục bộ
-|   +-- File dự án .mushroomlearning
-|   +-- File tự động lưu
-|   +-- File gần đây
-|
-+-- Lớp nhập dữ liệu
-|   +-- Nhập PDF
-|   +-- Nhập hình ảnh
-|
-+-- Lớp xuất dữ liệu
-|   +-- Xuất PDF
-|   +-- Xuất PNG
-|
-+-- Lớp trình bày
-    +-- Chế độ chỉnh sửa thông thường
-    +-- Chế độ trình bày
-```
-
-## 12. Định dạng file cục bộ
-
-Ứng dụng nên lưu bài học dưới dạng file dự án cục bộ.
-
-Phần mở rộng đề xuất:
-
-```text
-.mushroomlearning
-```
-
-Ví dụ tên file:
-
-```text
-ielts-writing-task-1.mushroomlearning
-math-grade-9-linear-equations.mushroomlearning
-physics-electricity-session-02.mushroomlearning
-```
-
-File dự án nên chứa:
-
-- Siêu dữ liệu của tài liệu
-- Danh sách trang
-- Các đối tượng trên canvas
-- Dữ liệu nét viết
-- Đối tượng văn bản
-- Đối tượng hình vẽ
-- Tham chiếu hình ảnh hoặc hình ảnh được nhúng
-- Tham chiếu PDF hoặc các trang PDF đã render được nhúng
-- Phiên bản ứng dụng
-
-Với MVP, có thể dùng định dạng đơn giản dựa trên JSON. Về sau, nếu việc quản lý tài nguyên phức tạp hơn, có thể chuyển sang định dạng gói nén.
-
-## 13. Stack kỹ thuật đề xuất
-
-### Stack ưu tiên
-
-| Lớp | Đề xuất |
-|---|---|
-| Framework desktop | Tauri |
-| Framework UI | React |
-| Ngôn ngữ | TypeScript |
-| Công cụ build | Vite |
-| Thư viện canvas | Konva.js hoặc Fabric.js |
-| Render PDF | PDF.js |
-| Lưu trữ cục bộ | Hệ thống file + JSON/file dự án cục bộ |
-| Xuất PDF | pdf-lib hoặc jsPDF |
-| Hệ điều hành mục tiêu đầu tiên | Windows |
-| Hệ điều hành mục tiêu sau | macOS |
-
-### Vì sao chọn Tauri + React + TypeScript
-
-- Kích thước ứng dụng thường nhỏ hơn nhiều ứng dụng Electron.
-- Phù hợp với ứng dụng desktop có UI dựa trên web.
-- Cho phép truy cập hệ thống file cục bộ qua API của Tauri.
-- TypeScript giúp dễ bảo trì khi mô hình đối tượng canvas lớn dần.
-- React giúp lặp UI nhanh.
+### 6.5 Test và chất lượng
 
-### Stack thay thế
+Đã có test unit cho các phần logic cốt lõi:
 
-Nếu đội ngũ muốn làm nhanh hơn và quen với công cụ web hơn, Electron + React + TypeScript cũng phù hợp cho nguyên mẫu. Tuy nhiên, Electron có thể tạo ra ứng dụng nặng hơn.
+- Board store.
+- Canvas history.
+- Coordinate transform.
+- Pointer input.
+- Stroke utilities.
+- Hit testing.
+- Serializer/validator file `.mushroomlearning`.
+- PNG exporter.
+- Presenter store.
+- Timer store.
 
-## 14. Chỉ số thành công
+Chưa thấy test e2e cho luồng dạy học đầy đủ.
 
-MVP nên được đánh giá bằng các buổi dạy thật, không chỉ bằng việc hoàn thành tính năng.
+## 7. Các Hạng Mục Chưa Hoàn Thiện So Với MVP
 
-### Chỉ số sử dụng sản phẩm
+Các phần còn thiếu hoặc mới ở mức placeholder/interface:
 
-| Chỉ số | Mục tiêu cho thử nghiệm beta |
-|---|---|
-| Giáo viên thử ứng dụng | 20-50 |
-| Buổi học thật dùng ứng dụng | 30+ |
-| Giáo viên dùng hơn một lần | 40%+ |
-| Thời lượng buổi học trung bình được hỗ trợ | 45-90 phút |
-| Tỷ lệ dùng xuất file sau buổi học | 30%+ số phiên |
-| Crash trong lúc dạy | Gần 0 nhất có thể |
+- Import PDF bằng PDF.js.
+- Export PDF.
+- Công cụ tô sáng.
+- Công cụ text.
+- Hình cơ bản: line, arrow, rectangle, circle.
+- Chọn/di chuyển object.
+- Thumbnail trang.
+- File gần đây nối UI đầy đủ.
+- Autosave nối vào luồng board thực tế và cơ chế khôi phục sau crash.
+- Lưu/mở file bằng Tauri filesystem thay vì browser download/upload.
+- Package desktop installer cho Windows.
+- Kiểm thử hiệu năng với buổi học 45-90 phút.
+- Kiểm thử với bảng vẽ/stylus thật.
+- Test e2e cho luồng: mở app, viết, thêm trang, import tài liệu, lưu, mở lại, export, presenter mode.
 
-### Tín hiệu thành công định tính
+## 8. Roadmap Đề Xuất
 
-- Giáo viên nói ứng dụng dễ dùng hơn quy trình hiện tại.
-- Giáo viên dùng trong lớp thật, không chỉ trong demo.
-- Giáo viên đề xuất cải tiến thay vì bỏ dùng.
-- Giáo viên sẵn sàng trả tiền khi ứng dụng ổn định.
+### Giai đoạn hiện tại: Prototype bảng trắng cục bộ
 
-## 15. Rủi ro chính
+Mục tiêu: biến prototype hiện có thành bản nội bộ đủ ổn định để demo và test với giáo viên.
 
-| Rủi ro | Tác động | Cách giảm thiểu |
-|---|---|---|
-| Nét bút bị lag | Rất cao | Ưu tiên hiệu năng canvas từ sớm |
-| Nhập PDF chậm | Cao | Giới hạn phạm vi MVP, kiểm thử với PDF dạy học thật |
-| Ứng dụng crash trong buổi học | Rất cao | Thêm tự động lưu và kiểm thử phiên dài |
-| Sản phẩm giống các công cụ sẵn có | Cao | Tập trung vào luồng sử dụng riêng cho giáo viên, không làm bảng trắng chung chung |
-| Giáo viên không muốn cài thêm ứng dụng | Trung bình | Thiết lập đơn giản, không cần đăng nhập |
-| Đối thủ miễn phí đủ tốt | Cao | Thắng bằng luồng dạy học và trải nghiệm chú thích PDF |
-| Phình phạm vi | Cao | Tránh đám mây, cộng tác, AI và tính năng LMS trong MVP |
+Ưu tiên:
 
-## 16. Nguyên tắc sản phẩm
+- Hoàn thiện nét viết, tẩy, pan/zoom và undo/redo.
+- Củng cố lưu/mở file `.mushroomlearning`.
+- Kiểm thử kỹ luồng nhiều trang.
+- Tối ưu canvas để không lag khi có nhiều nét.
 
-1. **Mở nhanh**  
-   Giáo viên có thể mở ứng dụng và bắt đầu dạy nhanh chóng.
+### Giai đoạn tiếp theo: Hỗ trợ tài liệu dạy học
 
-2. **Viết mượt**  
-   Chất lượng chữ viết tay là yêu cầu cốt lõi, không phải tính năng phụ.
+Mục tiêu: giáo viên có thể dùng tài liệu thật.
 
-3. **Không làm gián đoạn buổi học**  
-   Ứng dụng không nên hiện popup, yêu cầu đăng nhập hoặc tính năng thiếu ổn định trong lúc dạy trực tiếp.
+Ưu tiên:
 
-4. **Chia sẻ gọn gàng**  
-   Chế độ trình bày cần làm cửa sổ ứng dụng trông sạch và chuyên nghiệp khi chia sẻ qua Zoom hoặc Google Meet.
+- Import PDF.
+- Import ảnh ổn định hơn.
+- Tô sáng.
+- Text annotation.
+- Export PDF.
+- Export PNG nhiều trang hoặc lựa chọn trang.
 
-5. **Lưu cục bộ**  
-   Giáo viên sở hữu file bài học của mình và không phụ thuộc vào lưu trữ đám mây.
+### Giai đoạn sau: Trải nghiệm dạy live
 
-6. **Giữ phạm vi hẹp**  
-   Sản phẩm cần giải quyết tốt việc dạy trực tiếp trước khi mở rộng sang cộng tác, AI hoặc quản lý lớp học.
+Mục tiêu: dùng được trong một buổi Zoom/Meet thật.
 
-## 17. Lộ trình phát triển
+Ưu tiên:
 
-### Giai đoạn 0 - Xác thực
+- Presenter mode hoàn chỉnh.
+- Autosave và khôi phục.
+- Thumbnail trang.
+- File gần đây.
+- Timer polish.
+- Bộ cài Windows.
 
-**Mục tiêu:** Xác nhận giáo viên có nhu cầu thật với bảng dạy học desktop ngoại tuyến.
+### Giai đoạn beta
 
-Nhiệm vụ:
+Mục tiêu: thử nghiệm với 20-50 giáo viên.
 
-- Phỏng vấn 15-20 giáo viên/gia sư trực tuyến.
-- Quan sát luồng dạy học hiện tại của họ.
-- Xác định 3 điểm khó chịu lớn nhất.
-- Cho xem concept đơn giản hoặc nguyên mẫu có thể bấm.
-- Hỏi liệu họ có dùng trong lớp thật hay không.
+Ưu tiên:
 
-Tiêu chí thoát giai đoạn:
+- Thu thập feedback từ lớp học thật.
+- Theo dõi crash/lag/mất dữ liệu.
+- Đo tỷ lệ giáo viên dùng lại.
+- Xác nhận khả năng sẵn sàng trả tiền.
 
-- Ít nhất 5 giáo viên đồng ý thử MVP.
-- Ít nhất 3 giáo viên nói sẽ trả tiền nếu sản phẩm hoạt động tốt.
-- Các điểm đau chính khớp với phạm vi MVP.
+## 9. Rủi Ro Chính
 
-### Giai đoạn 1 - Nguyên mẫu bảng trắng cục bộ
+| Rủi ro | Tác động | Hướng giảm thiểu |
+|---|---:|---|
+| Nét viết lag khi lớp học dài | Rất cao | Test sớm với nhiều stroke và thiết bị stylus |
+| Import PDF chậm hoặc lỗi font/render | Cao | Dùng PDF.js, test với tài liệu dạy học thật |
+| Mất dữ liệu khi app crash | Rất cao | Ưu tiên autosave và recovery flow |
+| Lưu/mở file chưa native desktop | Trung bình | Nối Tauri filesystem trước beta |
+| Presenter mode chưa đủ sạch khi share màn hình | Trung bình | Test thực tế qua Zoom/Meet |
+| Scope creep sang cloud/AI/collaboration quá sớm | Cao | Giữ MVP offline-first đến khi validate xong |
 
-**Mục tiêu:** Xây dựng bảng trắng cục bộ đầu tiên có thể sử dụng.
+## 10. Chỉ Số Thành Công Cho MVP/Beta
 
-Tính năng:
+Chỉ số định lượng đề xuất:
 
-- Bảng trống
-- Bút
-- Tẩy
-- Hoàn tác/làm lại
-- Bảng nhiều trang
-- Lưu/tải cục bộ cơ bản
-
-Tiêu chí thoát giai đoạn:
-
-- Giáo viên có thể viết hơn 30 phút mà không bị lag nghiêm trọng.
-- Giáo viên có thể tạo và mở lại file bài học cục bộ.
-
-### Giai đoạn 2 - Hỗ trợ tài liệu dạy học
-
-**Mục tiêu:** Làm ứng dụng hữu ích với nội dung bài học thật.
-
-Tính năng:
-
-- Nhập PDF
-- Nhập hình ảnh
-- Công cụ tô sáng
-- Công cụ văn bản
-- Di chuyển bảng/phóng to thu nhỏ
-- Xuất PDF/PNG
-
-Tiêu chí thoát giai đoạn:
-
-- Giáo viên có thể nhập một PDF thật và dạy từ đó.
-- Giáo viên có thể xuất ghi chú bài học sau buổi học.
-
-### Giai đoạn 3 - Trải nghiệm chia sẻ màn hình
-
-**Mục tiêu:** Cải thiện trải nghiệm dạy trực tiếp.
-
-Tính năng:
-
-- Chế độ trình bày
-- Đồng hồ
-- Con trỏ laser
-- Thumbnail trang
-- File gần đây
-- Tự động lưu
-
-Tiêu chí thoát giai đoạn:
-
-- Giáo viên có thể dùng ứng dụng trong một lớp Zoom/Google Meet thật.
-- Cửa sổ chia sẻ trông sạch và chuyên nghiệp.
-- Không có lỗi crash nghiêm trọng trong một buổi học đầy đủ.
-
-### Giai đoạn 4 - Bản thử nghiệm beta
-
-**Mục tiêu:** Thử nghiệm ứng dụng với người dùng thật và thu thập phản hồi.
-
-Nhiệm vụ:
-
-- Đóng gói bộ cài Windows.
-- Tuyển 20-50 người dùng thử nghiệm beta.
-- Thu thập báo cáo lỗi và phản hồi dạy học.
-- Theo dõi tỷ lệ quay lại thủ công nếu cần.
-- Quyết định thêm cấp giấy phép trả phí hay tiếp tục beta miễn phí.
-
-Tiêu chí thoát giai đoạn:
-
-- Hơn 20 buổi học thật được dạy bằng ứng dụng.
-- Hơn 5 giáo viên dùng lặp lại.
-- Có bằng chứng rõ ràng rằng giáo viên sẵn sàng trả tiền.
-
-## 18. Mở rộng trong tương lai
-
-Chỉ sau khi MVP ngoại tuyến chứng minh được nhu cầu sử dụng thật, sản phẩm mới nên cân nhắc:
-
-- Kích hoạt bằng khóa giấy phép
-- Phiên bản desktop trả phí
-- Đồng bộ đám mây
-- Đường dẫn xem cho học sinh
-- Cộng tác thời gian thực
-- Thư viện tài nguyên cho giáo viên
-- AI hỗ trợ chuẩn bị bài học
-- AI tạo bài tập
-- Gói team cho trung tâm học tập
-
-Các tính năng này không nên đưa vào MVP trừ khi quá trình xác thực cho thấy nhu cầu rất mạnh.
-
-## 19. Gợi ý cấu trúc repository
-
-```text
-mushroomlearning-desktop/
-|
-+-- README.md
-+-- overview.md
-+-- package.json
-+-- tsconfig.json
-+-- vite.config.ts
-|
-+-- src/
-|   +-- app/
-|   +-- components/
-|   +-- canvas/
-|   |   +-- tools/
-|   |   +-- objects/
-|   |   +-- renderer/
-|   |   +-- history/
-|   +-- documents/
-|   +-- import/
-|   +-- export/
-|   +-- storage/
-|   +-- shortcuts/
-|   +-- styles/
-|
-+-- src-tauri/
-|   +-- Cargo.toml
-|   +-- src/
-|
-+-- public/
-|
-+-- docs/
-|   +-- mvp-scope.md
-|   +-- user-flow.md
-|   +-- technical-overview.md
-|   +-- validation-plan.md
-|
-+-- assets/
-```
-
-## 20. Khuyến nghị cuối từ góc nhìn PM
-
-MushroomLearning nên bắt đầu như một sản phẩm desktop ưu tiên ngoại tuyến với phạm vi hẹp, không phải một nền tảng đám mây.
-
-Giả thuyết sản phẩm đầu tiên là:
-
-> Giáo viên không cần thêm một công cụ cộng tác phức tạp. Họ cần một bảng dạy học đáng tin cậy, hoạt động tốt khi chia sẻ qua Zoom hoặc Google Meet.
-
-Vì vậy, MVP nên ưu tiên:
-
-1. Nét viết mượt.
-2. Chú thích PDF/hình ảnh.
-3. Luồng dạy học nhiều trang.
-4. Chế độ trình bày sạch.
-5. Lưu cục bộ và xuất file.
-
-Nếu năm điểm này hoạt động tốt, MushroomLearning có thể trở thành công cụ thực tế cho gia sư và giáo viên trực tuyến. Nếu năm điểm này yếu, việc thêm đám mây, AI hoặc cộng tác cũng không cứu được sản phẩm.
+- 20-50 giáo viên thử bản beta.
+- 30+ buổi học thật được dạy bằng ứng dụng.
+- 40%+ giáo viên dùng hơn một lần.
+- Hỗ trợ buổi học 45-90 phút không crash.
+- 30%+ phiên học có thao tác export sau buổi học.
+
+Tín hiệu định tính:
+
+- Giáo viên thấy workflow đơn giản hơn cách hiện tại.
+- Giáo viên dùng trong lớp thật, không chỉ demo.
+- Giáo viên yêu cầu cải tiến cụ thể thay vì bỏ dùng.
+- Có tín hiệu sẵn sàng trả tiền nếu bản ổn định.
+
+## 11. Đề Xuất Cho PM
+
+Khuyến nghị tiếp tục đi theo hướng desktop offline-first và chưa mở rộng sang cloud, đăng nhập, cộng tác hay AI trong MVP.
+
+Thứ tự ưu tiên nên là:
+
+1. Làm chắc core canvas: viết mượt, tẩy tốt, undo/redo ổn định.
+2. Hoàn thiện tài liệu dạy học: import PDF/ảnh, chú thích, export.
+3. Làm chắc lưu trữ cục bộ: file `.mushroomlearning`, autosave, mở lại bài học.
+4. Cải thiện trải nghiệm dạy live: presenter mode, timer, navigation, UI sạch khi share màn hình.
+5. Đóng gói Windows và chạy beta với giáo viên thật.
+
+Kết luận: dự án đã có nền tảng kỹ thuật và prototype đủ rõ để tiếp tục phát triển MVP. Trọng tâm tiếp theo không nên là thêm nhiều module mới, mà là hoàn thiện các luồng cốt lõi để một giáo viên có thể dùng sản phẩm trong một buổi học thật từ đầu đến cuối.

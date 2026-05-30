@@ -1,4 +1,4 @@
-﻿[package]
+[package]
 name = "mushroomlearning-desktop"
 version = "0.1.0"
 description = "Offline-first desktop whiteboard for live online teaching"

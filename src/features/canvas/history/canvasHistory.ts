@@ -2,6 +2,25 @@ import type { CanvasObject } from "../canvas.types";
 
 export type CanvasHistoryAction =
   | {
+      type: "addObject";
+      pageId: string;
+      objectId: string;
+    }
+  | {
+      type: "removeObject";
+      pageId: string;
+      objectId: string;
+    }
+  | {
+      type: "removeObjects";
+      pageId: string;
+      objectIds: string[];
+    }
+  | {
+      type: "clearCanvas";
+      pageId: string;
+    }
+  | {
       type: "addStroke";
       pageId: string;
       strokeId: string;
@@ -15,10 +34,6 @@ export type CanvasHistoryAction =
       type: "removeStrokes";
       pageId: string;
       strokeIds: string[];
-    }
-  | {
-      type: "clearCanvas";
-      pageId: string;
     };
 
 export interface CanvasHistoryEntry {

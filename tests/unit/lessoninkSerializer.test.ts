@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Board, ImagePageDocument } from "../../src/features/board/board.types";
-import type { Point, StrokeObject } from "../../src/features/canvas/canvas.types";
+import type { Point, StrokeObject, TextObject } from "../../src/features/canvas/canvas.types";
 import {
   createLessonInkFile,
   deserializeLessonInkFile,
@@ -69,6 +69,26 @@ function createImageDocument(pageId: string): ImagePageDocument {
     width: 640,
     height: 480,
     rotation: 0,
+    createdAt: "2026-05-28T00:00:00.000Z",
+    updatedAt: "2026-05-28T00:00:00.000Z"
+  };
+}
+
+function createTextObject(pageId: string): TextObject {
+  return {
+    id: "text-1",
+    pageId,
+    kind: "text",
+    text: "Remember this step",
+    fontFamily: "Inter, Arial, sans-serif",
+    fontSize: 24,
+    color: "#111827",
+    width: 260,
+    height: 34,
+    x: 42,
+    y: 64,
+    rotation: 0,
+    locked: false,
     createdAt: "2026-05-28T00:00:00.000Z",
     updatedAt: "2026-05-28T00:00:00.000Z"
   };
@@ -208,6 +228,22 @@ describe("deserializeLessonInkFile", () => {
 
     expect(loadedProject.board.pages[0].document).toEqual(imageDocument);
     expect(loadedProject.board.pages[0].objects).toEqual([stroke]);
+  });
+
+  it("round-trips text annotations", () => {
+    const text = createTextObject("page-1");
+    const board = createBoard({
+      pages: [
+        {
+          ...createBoard().pages[0],
+          objects: [text]
+        }
+      ]
+    });
+
+    const loadedProject = deserializeLessonInkFile(serializeLessonInkFile(board));
+
+    expect(loadedProject.board.pages[0].objects).toEqual([text]);
   });
 
   it("handles missing optional metadata fields safely", () => {

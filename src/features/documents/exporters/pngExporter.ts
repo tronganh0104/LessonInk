@@ -1,5 +1,5 @@
 import type { BoardPage } from "../../board/board.types";
-import type { StrokeObject } from "../../canvas/canvas.types";
+import type { StrokeObject, TextObject } from "../../canvas/canvas.types";
 
 interface ExportPageToPngInput {
   page: BoardPage;
@@ -47,6 +47,10 @@ export function getPagePngExportBounds(page: BoardPage, width: number, height: n
 
   page.objects.forEach((object) => {
     if (object.kind !== "stroke") {
+      if (object.kind === "text") {
+        includeRect(bounds, object.x, object.y, object.width, object.height);
+      }
+
       return;
     }
 
@@ -92,6 +96,20 @@ function drawStroke(context: CanvasRenderingContext2D, stroke: StrokeObject): vo
   context.restore();
 }
 
+function drawText(context: CanvasRenderingContext2D, text: TextObject): void {
+  const lineHeight = text.fontSize * 1.25;
+  const lines = text.text.split(/\r?\n/);
+
+  context.save();
+  context.translate(text.x, text.y);
+  context.rotate((text.rotation * Math.PI) / 180);
+  context.fillStyle = text.color;
+  context.font = `${text.fontSize}px ${text.fontFamily}`;
+  context.textBaseline = "top";
+  lines.forEach((line, index) => context.fillText(line, 0, index * lineHeight, text.width));
+  context.restore();
+}
+
 export async function createPagePngDataUrl({ page, width, height }: ExportPageToPngInput): Promise<string> {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -107,7 +125,7 @@ export async function createPagePngDataUrl({ page, width, height }: ExportPageTo
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.translate(-exportBounds.x, -exportBounds.y);
 
-  if (page.document?.kind === "image") {
+  if (page.document?.kind === "image" || page.document?.kind === "pdfPage") {
     const image = await loadImage(page.document.source);
 
     context.save();
@@ -120,6 +138,10 @@ export async function createPagePngDataUrl({ page, width, height }: ExportPageTo
   page.objects.forEach((object) => {
     if (object.kind === "stroke") {
       drawStroke(context, object);
+    }
+
+    if (object.kind === "text") {
+      drawText(context, object);
     }
   });
 
