@@ -49,6 +49,8 @@ export interface CanvasHistoryState {
   redoStack: CanvasHistoryEntry[];
 }
 
+export const MAX_CANVAS_HISTORY_ENTRIES = 120;
+
 export const initialCanvasHistoryState: CanvasHistoryState = {
   undoStack: [],
   redoStack: []
@@ -64,17 +66,17 @@ export function recordCanvasHistory(
     return history;
   }
 
+  const nextEntry: CanvasHistoryEntry = {
+    id: crypto.randomUUID(),
+    action,
+    before,
+    after,
+    createdAt: new Date().toISOString()
+  };
+  const undoStack = [...history.undoStack, nextEntry].slice(-MAX_CANVAS_HISTORY_ENTRIES);
+
   return {
-    undoStack: [
-      ...history.undoStack,
-      {
-        id: crypto.randomUUID(),
-        action,
-        before,
-        after,
-        createdAt: new Date().toISOString()
-      }
-    ],
+    undoStack,
     redoStack: []
   };
 }
@@ -117,7 +119,7 @@ export function redoCanvasHistory(history: CanvasHistoryState):
 
   return {
     history: {
-      undoStack: [...history.undoStack, entry],
+      undoStack: [...history.undoStack, entry].slice(-MAX_CANVAS_HISTORY_ENTRIES),
       redoStack: history.redoStack.slice(0, -1)
     },
     pageId: entry.action.pageId,

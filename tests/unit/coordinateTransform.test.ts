@@ -42,4 +42,23 @@ describe("coordinate transforms", () => {
     expect(panViewport(resetViewport(), 10, -20)).toEqual({ zoom: 1, panX: 10, panY: -20 });
     expect(resetViewport()).toEqual({ zoom: 1, panX: 0, panY: 0 });
   });
+
+  it("keeps points stable after repeated zoom and pan operations", () => {
+    const anchor = { x: 420, y: 240 };
+    let viewport = resetViewport();
+
+    for (let index = 0; index < 25; index += 1) {
+      viewport = zoomViewport(viewport, viewport.zoom * 1.08, anchor);
+      viewport = panViewport(viewport, 3, -2);
+      viewport = zoomViewport(viewport, viewport.zoom / 1.05, anchor);
+    }
+
+    const canvasPoint = viewportPointToCanvasPoint(anchor, viewport);
+    const roundTrippedPoint = canvasPointToViewportPoint(canvasPoint, viewport);
+
+    expect(roundTrippedPoint.x).toBeCloseTo(anchor.x, 8);
+    expect(roundTrippedPoint.y).toBeCloseTo(anchor.y, 8);
+    expect(viewport.zoom).toBeGreaterThanOrEqual(0.25);
+    expect(viewport.zoom).toBeLessThanOrEqual(4);
+  });
 });

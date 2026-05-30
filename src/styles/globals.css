@@ -1560,6 +1560,184 @@ button {
   transition: all 0.2s ease;
 }
 
+.pdf-import-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.34);
+  backdrop-filter: blur(3px);
+}
+
+.pdf-import-modal {
+  display: grid;
+  gap: 16px;
+  width: min(520px, 100%);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 20px;
+  background: var(--color-panel);
+  box-shadow: var(--shadow-xl);
+}
+
+.pdf-import-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pdf-import-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--color-soft-accent);
+  color: var(--color-accent);
+  flex: 0 0 auto;
+}
+
+.pdf-import-header h2 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1.12rem;
+}
+
+.pdf-import-header p {
+  max-width: 420px;
+  margin: 3px 0 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-import-status,
+.pdf-import-summary,
+.pdf-import-warning,
+.pdf-import-tip,
+.pdf-import-error {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.pdf-import-status,
+.pdf-import-tip {
+  background: var(--color-bg);
+  color: var(--color-muted);
+}
+
+.pdf-import-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--color-line);
+  background: var(--color-bg);
+}
+
+.pdf-import-summary span {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.pdf-import-summary strong {
+  color: var(--color-ink);
+}
+
+.pdf-import-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid #fef3c7;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.pdf-import-error {
+  margin: 0;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.pdf-import-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pdf-import-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pdf-import-option.active {
+  border-color: var(--color-accent);
+  background: var(--color-soft-accent);
+  color: var(--color-accent);
+}
+
+.pdf-import-option input {
+  accent-color: var(--color-accent);
+}
+
+.pdf-range-field {
+  display: grid;
+  gap: 6px;
+}
+
+.pdf-range-field span {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.pdf-range-field input {
+  height: 40px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.pdf-range-field input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pdf-import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pdf-import-actions .primary-button,
+.pdf-import-actions .secondary-button {
+  height: 38px;
+  border-radius: 8px;
+  padding: 0 16px;
+}
+
 /* Interactive transitions */
 button, select, input {
   transition: all 0.2s ease;
@@ -2323,6 +2501,24 @@ textarea:focus-visible {
   .timer-floating-widget {
     right: 10px;
     bottom: 72px;
+    transform: scale(0.88);
+    transform-origin: bottom right;
+  }
+
+  .timer-floating-widget .utility-panel {
+    padding: 4px 6px;
+  }
+
+  .timer-floating-widget .timer-label,
+  .timer-floating-widget .timer-link-button {
+    display: none;
+  }
+
+  .timer-floating-widget .timer-control {
+    min-width: 34px;
+    min-height: 26px;
+    padding: 3px 6px;
+    font-size: 0.72rem;
   }
 
   .settings-page {

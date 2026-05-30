@@ -22,11 +22,49 @@ interface MutableBounds {
   maxY: number;
 }
 
+function snapCoordinate(value: number): number {
+  const rounded = Math.round(value);
+
+  return Math.abs(value - rounded) < 1e-9 ? rounded : value;
+}
+
 function includeRect(bounds: MutableBounds, x: number, y: number, width: number, height: number): void {
   bounds.minX = Math.min(bounds.minX, x);
   bounds.minY = Math.min(bounds.minY, y);
   bounds.maxX = Math.max(bounds.maxX, x + width);
   bounds.maxY = Math.max(bounds.maxY, y + height);
+}
+
+function includeRotatedRect(
+  bounds: MutableBounds,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  rotation = 0
+): void {
+  if (rotation === 0) {
+    includeRect(bounds, x, y, width, height);
+    return;
+  }
+
+  const radians = (rotation * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const corners = [
+    { x: 0, y: 0 },
+    { x: width, y: 0 },
+    { x: width, y: height },
+    { x: 0, y: height }
+  ];
+
+  corners.forEach((corner) => {
+    includePoint(
+      bounds,
+      snapCoordinate(x + corner.x * cos - corner.y * sin),
+      snapCoordinate(y + corner.x * sin + corner.y * cos)
+    );
+  });
 }
 
 function includePoint(bounds: MutableBounds, x: number, y: number, padding = 0): void {
@@ -42,13 +80,20 @@ export function getPagePngExportBounds(page: BoardPage, width: number, height: n
   };
 
   if (page.document) {
-    includeRect(bounds, page.document.x, page.document.y, page.document.width, page.document.height);
+    includeRotatedRect(
+      bounds,
+      page.document.x,
+      page.document.y,
+      page.document.width,
+      page.document.height,
+      page.document.rotation
+    );
   }
 
   page.objects.forEach((object) => {
     if (object.kind !== "stroke") {
       if (object.kind === "text") {
-        includeRect(bounds, object.x, object.y, object.width, object.height);
+        includeRotatedRect(bounds, object.x, object.y, object.width, object.height, object.rotation);
       }
 
       return;

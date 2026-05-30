@@ -21,7 +21,7 @@ import { deserializeLessonInkFile, serializeLessonInkFile } from "../../document
 import { exportBoardToPdf, getDefaultPdfExportName } from "../../documents/exporters/pdfExporter";
 import { exportPageToPng } from "../../documents/exporters/pngExporter";
 import { importImageAsPageDocument } from "../../documents/importers/imageImporter";
-import { importPdfAsBoardPages } from "../../documents/importers/pdfImporter";
+import { importPdfAsBoardPages, readPdfImportMetadata } from "../../documents/importers/pdfImporter";
 import { getBoardPageClassName, usePresenterStore } from "../../presenter/presenter.store";
 import { TimerPanel } from "../../timer/TimerPanel";
 import {
@@ -38,11 +38,21 @@ import { useSettings } from "../../settings/context/SettingsContext";
 import { clearAutosaveSnapshot, readAutosaveSnapshot, writeAutosaveSnapshot } from "../../../storage/autosave";
 import { readRecentFiles, writeRecentFiles } from "../../../storage/recentFiles";
 import { PageStrip } from "./PageStrip";
+import { PdfImportModal } from "./PdfImportModal";
 import { RecoveryModal } from "./RecoveryModal";
 
 interface PendingRecoveryData {
   board: any;
   project: LessonInkFileProjectMetadata;
+}
+
+interface PendingPdfImport {
+  file: File;
+  fileName: string;
+  totalPages?: number;
+  isReadingMetadata: boolean;
+  isImporting: boolean;
+  error?: string;
 }
 
 export function BoardShell() {
@@ -64,6 +74,8 @@ export function BoardShell() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const hasCheckedAutosaveRef = useRef(false);
+  const latestBoardRef = useRef(board);
+  const latestProjectRef = useRef(project);
   const [toolState, setToolState] = useState(() => ({
     ...initialCanvasToolState,
     activeTool: (settings.defaultTool === "select" ? "pan" : "pen") as ToolType
@@ -75,6 +87,7 @@ export function BoardShell() {
   const [isPageStripCollapsed, setIsPageStripCollapsed] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"Saved" | "Saving" | "Unsaved changes">("Saved");
   const [pendingRecovery, setPendingRecovery] = useState<PendingRecoveryData | null>(null);
+  const [pendingPdfImport, setPendingPdfImport] = useState<PendingPdfImport | null>(null);
   const [fileMessage, setFileMessage] = useState<string | undefined>(undefined);
   const [fileError, setFileError] = useState<string | undefined>(undefined);
   const activePageIndex = Math.max(
@@ -83,6 +96,11 @@ export function BoardShell() {
   );
   const previousPageId = getAdjacentPageId(board, "previous");
   const nextPageId = getAdjacentPageId(board, "next");
+
+  useEffect(() => {
+    latestBoardRef.current = board;
+    latestProjectRef.current = project;
+  }, [board, project]);
 
   // Sync initial toolState when defaultTool setting changes
   useEffect(() => {
@@ -137,14 +155,18 @@ export function BoardShell() {
       return undefined;
     }
 
-    const timeoutId = window.setTimeout(() => {
+    const intervalMs = settings.autosaveIntervalSeconds * 1000;
+    const intervalId = window.setInterval(() => {
       setSaveStatus("Saving");
-      writeAutosaveSnapshot(board, project);
-      setSaveStatus("Saved");
-    }, settings.autosaveIntervalSeconds * 1000);
+      const didSave = writeAutosaveSnapshot(latestBoardRef.current, latestProjectRef.current);
+      setSaveStatus(didSave ? "Saved" : "Unsaved changes");
+      if (!didSave) {
+        setFileError("Autosave could not write a recovery snapshot. Save or export your lesson soon.");
+      }
+    }, intervalMs);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [board, project, saveStatus, settings.autosaveEnabled, settings.autosaveIntervalSeconds]);
+    return () => window.clearInterval(intervalId);
+  }, [saveStatus, settings.autosaveEnabled, settings.autosaveIntervalSeconds]);
 
   useEffect(() => {
     if (!timerState.isRunning) {
@@ -453,23 +475,75 @@ export function BoardShell() {
       return;
     }
 
+    setPendingPdfImport({
+      file,
+      fileName: file.name,
+      isReadingMetadata: true,
+      isImporting: false
+    });
+    setFileMessage(undefined);
+    setFileError(undefined);
+
     try {
-      const pages = await importPdfAsBoardPages({ file });
+      const metadata = await readPdfImportMetadata(file);
+
+      setPendingPdfImport((current) =>
+        current?.file === file
+          ? {
+              ...current,
+              totalPages: metadata.totalPages,
+              isReadingMetadata: false,
+              error: undefined
+            }
+          : current
+      );
+    } catch (error) {
+      setPendingPdfImport((current) =>
+        current?.file === file
+          ? {
+              ...current,
+              isReadingMetadata: false,
+              error: error instanceof Error ? error.message : "Could not read the selected PDF."
+            }
+          : current
+      );
+    }
+  };
+
+  const handleConfirmPdfImport = async (pageNumbers?: number[]) => {
+    const pendingImport = pendingPdfImport;
+
+    if (!pendingImport || pendingImport.isReadingMetadata || pendingImport.isImporting) {
+      return;
+    }
+
+    try {
       const hasExistingWork = board.pages.some((page) => page.objects.length > 0 || page.document);
 
       if (hasExistingWork && !window.confirm("Importing this PDF will replace the current board pages. Continue?")) {
         return;
       }
 
+      setPendingPdfImport((current) => (current ? { ...current, isImporting: true, error: undefined } : current));
+      const pages = await importPdfAsBoardPages({ file: pendingImport.file, pageNumbers });
+
       replacePages(pages);
       setHistory(initialCanvasHistoryState);
       setViewport(resetViewport());
       setSaveStatus("Unsaved changes");
       setFileError(undefined);
-      setFileMessage(`Imported ${pages.length} PDF page${pages.length === 1 ? "" : "s"} from ${file.name}.`);
+      setFileMessage(`Imported ${pages.length} PDF page${pages.length === 1 ? "" : "s"} from ${pendingImport.fileName}.`);
+      setPendingPdfImport(null);
     } catch (error) {
-      setFileMessage(undefined);
-      setFileError(error instanceof Error ? error.message : "Could not import the selected PDF.");
+      setPendingPdfImport((current) =>
+        current
+          ? {
+              ...current,
+              isImporting: false,
+              error: error instanceof Error ? error.message : "Could not import the selected PDF."
+            }
+          : current
+      );
     }
   };
 
@@ -608,6 +682,18 @@ export function BoardShell() {
             clearAutosaveSnapshot();
             setPendingRecovery(null);
           }}
+        />
+      )}
+
+      {pendingPdfImport && (
+        <PdfImportModal
+          error={pendingPdfImport.error}
+          fileName={pendingPdfImport.fileName}
+          isImporting={pendingPdfImport.isImporting}
+          isReadingMetadata={pendingPdfImport.isReadingMetadata}
+          totalPages={pendingPdfImport.totalPages}
+          onCancel={() => setPendingPdfImport(null)}
+          onImport={handleConfirmPdfImport}
         />
       )}
     </section>

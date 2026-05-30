@@ -119,4 +119,62 @@ describe("getPagePngExportBounds", () => {
       height: 740
     });
   });
+
+  it("expands to include rotated imported documents", () => {
+    const page = createPage({
+      document: {
+        id: "pdf-1",
+        pageId: "page-1",
+        kind: "pdfPage",
+        sourceType: "embeddedRender",
+        source: "data:image/png;base64,aW1hZ2U=",
+        pdfPageNumber: 1,
+        x: 100,
+        y: 100,
+        width: 200,
+        height: 100,
+        rotation: 90,
+        createdAt: "2026-05-28T00:00:00.000Z",
+        updatedAt: "2026-05-28T00:00:00.000Z"
+      }
+    });
+
+    expect(getPagePngExportBounds(page, 50, 50)).toEqual({
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 300
+    });
+  });
+
+  it("expands to include rotated text annotations", () => {
+    const page = createPage({
+      objects: [
+        {
+          id: "text-1",
+          pageId: "page-1",
+          kind: "text",
+          text: "Rotated note",
+          fontFamily: "Inter, Arial, sans-serif",
+          fontSize: 24,
+          color: "#111827",
+          width: 100,
+          height: 40,
+          x: 120,
+          y: 100,
+          rotation: 90,
+          locked: false,
+          createdAt: "2026-05-28T00:00:00.000Z",
+          updatedAt: "2026-05-28T00:00:00.000Z"
+        }
+      ]
+    });
+
+    expect(getPagePngExportBounds(page, 50, 50)).toEqual({
+      x: 0,
+      y: 0,
+      width: 120,
+      height: 200
+    });
+  });
 });

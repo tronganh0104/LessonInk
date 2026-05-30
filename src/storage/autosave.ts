@@ -4,12 +4,23 @@ import { deserializeLessonInkFile, serializeLessonInkFile } from "../features/do
 
 const AUTOSAVE_KEY = "mushroomlearning.autosave.currentProject";
 
-export function writeAutosaveSnapshot(board: Board, project: LessonInkFileProjectMetadata): void {
-  window.localStorage.setItem(AUTOSAVE_KEY, serializeLessonInkFile(board, project));
+export function writeAutosaveSnapshot(board: Board, project: LessonInkFileProjectMetadata): boolean {
+  try {
+    window.localStorage.setItem(AUTOSAVE_KEY, serializeLessonInkFile(board, project));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function readAutosaveSnapshot(): LessonInkLoadedProject | null {
-  const rawProject = window.localStorage.getItem(AUTOSAVE_KEY);
+  let rawProject: string | null = null;
+
+  try {
+    rawProject = window.localStorage.getItem(AUTOSAVE_KEY);
+  } catch {
+    return null;
+  }
 
   if (!rawProject) {
     return null;
@@ -24,5 +35,9 @@ export function readAutosaveSnapshot(): LessonInkLoadedProject | null {
 }
 
 export function clearAutosaveSnapshot(): void {
-  window.localStorage.removeItem(AUTOSAVE_KEY);
+  try {
+    window.localStorage.removeItem(AUTOSAVE_KEY);
+  } catch {
+    // Clearing autosave is best effort; storage may be unavailable in restricted contexts.
+  }
 }

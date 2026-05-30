@@ -6,6 +6,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 interface ImportPdfAsPagesInput {
   file: File;
+  pageNumbers?: number[];
 }
 
 const now = () => new Date().toISOString();
@@ -55,17 +56,61 @@ function createPdfBoardPage(pageNumber: number, source: string, width: number, h
   };
 }
 
-export async function importPdfAsBoardPages({ file }: ImportPdfAsPagesInput): Promise<BoardPage[]> {
+function validatePdfFile(file: File): void {
   if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
     throw new Error("Please choose a PDF file.");
   }
+}
+
+export interface PdfImportMetadata {
+  fileName: string;
+  totalPages: number;
+}
+
+export async function readPdfImportMetadata(file: File): Promise<PdfImportMetadata> {
+  validatePdfFile(file);
+
+  try {
+    const data = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data }).promise;
+
+    return {
+      fileName: file.name,
+      totalPages: pdf.numPages
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message !== "Invalid PDF structure.") {
+      throw new Error(`Could not read PDF metadata. ${error.message}`);
+    }
+
+    throw new Error("Could not read PDF metadata. The selected file may be damaged or password protected.");
+  }
+}
+
+function normalizeSelectedPages(pageNumbers: number[] | undefined, totalPages: number): number[] {
+  if (!pageNumbers || pageNumbers.length === 0) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = [...new Set(pageNumbers)].sort((first, second) => first - second);
+
+  if (pages.some((pageNumber) => !Number.isSafeInteger(pageNumber) || pageNumber < 1 || pageNumber > totalPages)) {
+    throw new Error(`Selected PDF pages must be between 1 and ${totalPages}.`);
+  }
+
+  return pages;
+}
+
+export async function importPdfAsBoardPages({ file, pageNumbers }: ImportPdfAsPagesInput): Promise<BoardPage[]> {
+  validatePdfFile(file);
 
   try {
     const data = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data }).promise;
     const pages: BoardPage[] = [];
+    const selectedPages = normalizeSelectedPages(pageNumbers, pdf.numPages);
 
-    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    for (const pageNumber of selectedPages) {
       const page = await pdf.getPage(pageNumber);
       const viewport = page.getViewport({ scale: 1.5 });
       const canvas = document.createElement("canvas");

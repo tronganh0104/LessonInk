@@ -304,6 +304,44 @@ describe("deserializeLessonInkFile", () => {
     expect(loadedProject.board.pages[0].objects).toEqual([firstStroke]);
     expect(loadedProject.board.pages[1].objects).toEqual([secondStroke]);
   });
+
+  it("round-trips a larger multi-page teaching session without dropping annotations", () => {
+    const pages = Array.from({ length: 6 }, (_, pageIndex) => {
+      const pageId = `page-${pageIndex + 1}`;
+
+      return {
+        id: pageId,
+        title: `Page ${pageIndex + 1}`,
+        index: pageIndex,
+        background: {
+          type: "blank" as const,
+          color: "#ffffff"
+        },
+        objects: Array.from({ length: 100 }, (_, strokeIndex) =>
+          createStroke(`stroke-${pageIndex + 1}-${strokeIndex + 1}`, pageId, [
+            { x: strokeIndex, y: pageIndex * 20 },
+            { x: strokeIndex + 10, y: pageIndex * 20 + 10 }
+          ])
+        ),
+        createdAt: "2026-05-28T00:00:00.000Z",
+        updatedAt: "2026-05-28T00:00:00.000Z"
+      };
+    });
+    const board = createBoard({
+      activePageId: "page-6",
+      pages
+    });
+
+    const loadedProject = deserializeLessonInkFile(serializeLessonInkFile(board));
+
+    expect(loadedProject.board.pages).toHaveLength(6);
+    expect(loadedProject.board.activePageId).toBe("page-6");
+    expect(loadedProject.board.pages.flatMap((page) => page.objects)).toHaveLength(600);
+    expect(loadedProject.board.pages[5].objects[99]).toMatchObject({
+      id: "stroke-6-100",
+      pageId: "page-6"
+    });
+  });
 });
 
 describe("sanitizeLessonInkFileName", () => {

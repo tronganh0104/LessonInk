@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { StrokeObject } from "../../src/features/canvas/canvas.types";
 import {
   initialCanvasHistoryState,
+  MAX_CANVAS_HISTORY_ENTRIES,
   recordCanvasHistory,
   redoCanvasHistory,
   undoCanvasHistory
@@ -137,5 +138,22 @@ describe("canvas history", () => {
     );
 
     expect(nextHistory.redoStack).toEqual([]);
+  });
+
+  it("caps undo history to protect long teaching sessions from unbounded growth", () => {
+    let history = initialCanvasHistoryState;
+
+    for (let index = 0; index < MAX_CANVAS_HISTORY_ENTRIES + 25; index += 1) {
+      const stroke = createStroke(`stroke-${index}`);
+      history = recordCanvasHistory(
+        history,
+        { type: "addObject", pageId: "page-1", objectId: stroke.id },
+        [],
+        [stroke]
+      );
+    }
+
+    expect(history.undoStack).toHaveLength(MAX_CANVAS_HISTORY_ENTRIES);
+    expect(history.undoStack[0].action).toMatchObject({ objectId: "stroke-25" });
   });
 });
